@@ -34,11 +34,19 @@ Last updated: 2026-10-19. Re-read this file, then `docs/PRD.md`, before resuming
   scrub, timeline, metrics. `selftest.mjs` checks the viewer logic under Node. Checked visually in
   headless Chrome from file://.
 * README quick start (executed verbatim by verify.sh), CLAUDE.md, plan.md.
+* Full experiment with the PRD's large size (500 couriers / 5,000 orders) at normal and peak load:
+  `experiments/results/full/` (180 runs, fairness check OK, 451 s).
+* **CCH (P2), passed the kill-switch:** own geometric nested-dissection order (no METIS dependency),
+  chordal contraction, basic triangle customization, pruned upward bidirectional query, iterative
+  unpacking. Exact on fixtures, random graphs, re-customized traffic weights and 10,000 Tricity
+  queries (ctest `routing_agreement_tricity_cch`, verify AC-17). On Tricity: about 160 ms
+  preprocessing, 6.4× fill-in, 29 MiB, median query about 12× faster than Dijkstra (PERFORMANCE.md).
+  Because CCH succeeded, the replacement graph-layout / priority-queue study was not needed.
 
 ## In progress
 
-* `verify.sh` passes (all mandatory AC). Next: full experiment including the large size
-  (`experiments/configs/full.json` → `experiments/results/full/`), then the time-boxed CCH attempt (P2).
+* Nothing in progress. All mandatory AC and the optional AC-17 (CCH) pass in `verify.sh` (exit 0,
+  about 4m50s on Apple M4).
 
 ## Acceptance criteria (PRD §17)
 
@@ -63,7 +71,7 @@ row lists the check that backs it.
 | AC-14 | Routing latency and memory benchmarks | PASS: benchmark_graph/routing/dispatch → PERFORMANCE.md with environment fields |
 | AC-15 | Policies compared fairly | PASS: experiment (4 sizes × 3 traffic × 5 paired seeds) + `check-experiment` (same scenario hash per cell) |
 | AC-16 | Builds with documented instructions | PASS: README quick start executed verbatim in a clean copy; subcommands and paths cross-checked |
-| AC-17 | CCH exact (optional) | not started |
+| AC-17 | CCH exact (optional) | PASS: `cch:*` tests + 10,000-query agreement with `--cch` |
 
 ## Known issues / notes
 

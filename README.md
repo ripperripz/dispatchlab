@@ -3,7 +3,8 @@
 DispatchLab is a deterministic, performance-oriented food-delivery routing and dispatch simulator,
 written in C++20 and run on the real OpenStreetMap road network of Chandigarh, Mohali and Panchkula.
 It ships its own CSR graph, binary heap, iterative SCC, three exact shortest-path algorithms
-(Dijkstra, Bidirectional Dijkstra, A*) and a discrete-event simulator with two dispatch policies
+(Dijkstra, Bidirectional Dijkstra, A*), plus the optional Customizable Contraction Hierarchies
+(CCH) stretch goal, and a discrete-event simulator with two dispatch policies
 (Nearest, Greedy ETA). It also includes event-log replay with stable state hashes, a reproducible
 experiment runner, benchmarks and an offline web viewer. The spec is in [`docs/PRD.md`](docs/PRD.md).
 
@@ -84,7 +85,8 @@ Run `./build/dispatchlab help` for all options.
 
 Benchmarks are separate binaries: `./build/benchmark_graph`, `./build/benchmark_routing` and
 `./build/benchmark_dispatch`, each taking `<graph> --out file.json`. The routing agreement suite is
-`./build/routing_agreement <graph> --queries 10000 --seed 20261018`.
+`./build/routing_agreement <graph> --queries 10000 --seed 20261018`. Add `--cch` to include CCH in
+the comparison.
 
 ## Running experiments
 
@@ -113,7 +115,7 @@ no external map tiles or APIs.
 ```text
 include/dispatchlab/  public headers (graph, binary_heap, routing, simulator, dispatch, ...)
 src/graph/            CSR graph + serialization, iterative SCC, libosmium importer
-src/routing/          Dijkstra, bidirectional Dijkstra, A*
+src/routing/          Dijkstra, bidirectional Dijkstra, A*, CCH (P2)
 src/simulation/       event queue, scenario generator, traffic, simulator/state machine, replay, log I/O
 src/dispatch/         Nearest and Greedy ETA policies
 src/experiments/      experiment runner
