@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Hand-built OSM fixture for importer tests (see tests/test_osm_import.cpp).
+  Expected after import: nodes {1,2,3,4,5,9,10,11} (8), 14 directed edges.
+  - way 100 residential 1-2-3 two-way
+  - way 101 primary oneway=yes 3->4
+  - way 102 residential 4-1 two-way
+  - way 103 tertiary oneway=-1 5-6  => only 6->5; node 6 unreachable => dropped by SCC
+  - way 104 residential 5-1 two-way
+  - way 105 footway 2-7             => not drivable
+  - way 106 residential access=private 3-8 => rejected
+  - way 107 unclassified junction=roundabout 9-10-11-9 => implied one-way
+  - way 108 residential 12-13       => separate island, dropped by SCC
+  - way 109 residential 11-2 two-way
+  - way 110 service oneway=reversible 1-5 => skipped (unpredictable direction)
+-->
+<osm version="0.6" generator="hand">
+  <node id="1" lat="30.7000" lon="76.7800" version="1"/>
+  <node id="2" lat="30.7010" lon="76.7800" version="1"/>
+  <node id="3" lat="30.7020" lon="76.7800" version="1"/>
+  <node id="4" lat="30.7020" lon="76.7810" version="1"/>
+  <node id="5" lat="30.7000" lon="76.7790" version="1"/>
+  <node id="6" lat="30.6990" lon="76.7790" version="1"/>
+  <node id="7" lat="30.7010" lon="76.7790" version="1"/>
+  <node id="8" lat="30.7030" lon="76.7800" version="1"/>
+  <node id="9" lat="30.7010" lon="76.7820" version="1"/>
+  <node id="10" lat="30.7015" lon="76.7825" version="1"/>
+  <node id="11" lat="30.7010" lon="76.7830" version="1"/>
+  <node id="12" lat="30.7500" lon="76.8500" version="1"/>
+  <node id="13" lat="30.7505" lon="76.8500" version="1"/>
+  <way id="100" version="1"><nd ref="1"/><nd ref="2"/><nd ref="3"/><tag k="highway" v="residential"/></way>
+  <way id="101" version="1"><nd ref="3"/><nd ref="4"/><tag k="highway" v="primary"/><tag k="oneway" v="yes"/></way>
+  <way id="102" version="1"><nd ref="4"/><nd ref="1"/><tag k="highway" v="residential"/></way>
+  <way id="103" version="1"><nd ref="5"/><nd ref="6"/><tag k="highway" v="tertiary"/><tag k="oneway" v="-1"/></way>
+  <way id="104" version="1"><nd ref="5"/><nd ref="1"/><tag k="highway" v="residential"/></way>
+  <way id="105" version="1"><nd ref="2"/><nd ref="7"/><tag k="highway" v="footway"/></way>
+  <way id="106" version="1"><nd ref="3"/><nd ref="8"/><tag k="highway" v="residential"/><tag k="access" v="private"/></way>
+  <way id="107" version="1"><nd ref="9"/><nd ref="10"/><nd ref="11"/><nd ref="9"/><tag k="highway" v="unclassified"/><tag k="junction" v="roundabout"/></way>
+  <way id="108" version="1"><nd ref="12"/><nd ref="13"/><tag k="highway" v="residential"/></way>
+  <way id="109" version="1"><nd ref="11"/><nd ref="2"/><tag k="highway" v="residential"/></way>
+  <way id="110" version="1"><nd ref="1"/><nd ref="5"/><tag k="highway" v="service"/><tag k="oneway" v="reversible"/></way>
+</osm>

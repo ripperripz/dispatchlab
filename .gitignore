@@ -1,0 +1,14 @@
+build/
+build-*/
+.cache/
+# Full Geofabrik extract (224 MB) is not committed; the clipped Tricity extract is.
+data/raw/northern-zone-*.osm.pbf
+data/raw/northern-zone-*.md5
+# Generated artifacts (rebuilt by scripts/verify.sh)
+data/processed/*.graph
+data/scenarios/*.json
+experiments/results/tmp/
+viewer/replay.json
+viewer/replay_data.js
+*.log
+.DS_Store
