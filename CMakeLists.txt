@@ -28,6 +28,7 @@ add_library(dispatchlab_core STATIC
   src/routing/dijkstra.cpp
   src/routing/bidirectional.cpp
   src/routing/astar.cpp
+  src/routing/cch.cpp
   src/simulation/event_queue.cpp
   src/simulation/scenario.cpp
   src/simulation/traffic.cpp
@@ -91,6 +92,7 @@ set(DL_TEST_SOURCES
   tests/test_simulator.cpp
   tests/test_dispatch.cpp
   tests/test_replay.cpp
+  tests/test_cch.cpp
 )
 if(DISPATCHLAB_WITH_OSM)
   list(APPEND DL_TEST_SOURCES tests/test_osm_import.cpp)
@@ -121,6 +123,10 @@ if(DISPATCHLAB_WITH_OSM)
   add_test(NAME routing_agreement_tricity
            COMMAND routing_agreement ${DL_TRICITY_GRAPH} --queries 10000 --seed 20261018)
   set_tests_properties(routing_agreement_tricity PROPERTIES FIXTURES_REQUIRED tricity_graph)
+  # P2: CCH must pass the same 10,000-query suite (PRD §13.1).
+  add_test(NAME routing_agreement_tricity_cch
+           COMMAND routing_agreement ${DL_TRICITY_GRAPH} --queries 10000 --seed 20261018 --cch)
+  set_tests_properties(routing_agreement_tricity_cch PROPERTIES FIXTURES_REQUIRED tricity_graph)
 endif()
 
 # ---------------------------------------------------------------- benchmarks

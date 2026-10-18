@@ -80,7 +80,7 @@ record "BUILD (Release, C++20, -Wall -Wextra, no warnings)" $BUILD_OK
 
 if [ $BUILD_OK -ne 0 ]; then
     echo "Build failed; remaining checks cannot run."
-    for id in AC-01 AC-02 AC-03 AC-04 AC-05 AC-06 AC-07 AC-08 AC-09 AC-10 AC-11 AC-12 AC-13 AC-14 AC-15 AC-16; do
+    for id in AC-01 AC-02 AC-03 AC-04 AC-05 AC-06 AC-07 AC-08 AC-09 AC-10 AC-11 AC-12 AC-13 AC-14 AC-15 AC-16 AC-17; do
         record "$id" 1
     done
     exit 1
@@ -154,6 +154,13 @@ rc=$AGREE; unit ac06_astar "astar:*" || rc=1
 record "AC-06 A* agrees with Dijkstra (incl. admissibility test)" $rc
 rc=$AGREE; unit ac07_bidir "bidirectional:*" || rc=1
 record "AC-07 Bidirectional Dijkstra agrees with Dijkstra" $rc
+
+log "AC-17 (optional, P2): CCH exact on fixtures and on ${ROUTING_QUERIES} Tricity queries"
+rc=0
+unit ac17_cch "cch:*" || rc=1
+run "$OUT/agreement_cch.log" "$BUILD/routing_agreement" "$GRAPH" --queries "$ROUTING_QUERIES" --seed "$ROUTING_SEED" --cch || rc=1
+grep -q "ROUTING_AGREEMENT_PASS ${ROUTING_QUERIES}$" "$OUT/agreement_cch.log" && grep -q "cch=yes" "$OUT/agreement_cch.log" || rc=1
+record "AC-17 (optional) CCH returns exact shortest-path results" $rc
 
 # ----------------------------------------------------------------------------
 log "AC-09 / AC-12: deterministic simulation, replay and invariants"
@@ -243,7 +250,7 @@ run "$OUT/bench_dispatch.log" "$BUILD/benchmark_dispatch" "$GRAPH" --out "$BENCH
 run "$OUT/report.log" "$DL" perf-report --graph-json "$BENCH/graph.json" --routing-json "$BENCH/routing.json" \
     --dispatch-json "$BENCH/dispatch.json" --out PERFORMANCE.md || rc=1
 for pat in "Median" "p95" "p99" "Nodes settled" "Memory" "Hardware" "Compiler" "Flags" "Dataset" "Seed" \
-           "CSR" "Adjacency" "Dijkstra" "Bidirectional" "A\*"; do
+           "CSR" "Adjacency" "Dijkstra" "Bidirectional" "A\*" "CCH"; do
     grep -q "$pat" PERFORMANCE.md || { echo "PERFORMANCE.md lacks '$pat'"; rc=1; }
 done
 grep -q "BEGIN GENERATED" PERFORMANCE.md || rc=1

@@ -37,30 +37,32 @@ Last updated: 2026-10-19. Re-read this file, then `docs/PRD.md`, before resuming
 
 ## In progress
 
-* Waiting on the first full `verify.sh` run; this file will be updated with the result.
+* `verify.sh` passes (all mandatory AC). Next: full experiment including the large size
+  (`experiments/configs/full.json` → `experiments/results/full/`), then the time-boxed CCH attempt (P2).
 
 ## Acceptance criteria (PRD §17)
 
-Status as of the last full `./scripts/verify.sh` run. See below.
+Status as of the last full `./scripts/verify.sh` run (2026-10-19, clean Release build, exit 0). Each
+row lists the check that backs it.
 
 | AC | Criterion | Status |
 |---|---|---|
-| AC-01 | Tricity OSM data imported | pending verify |
-| AC-02 | Directed CSR graph correct | pending verify |
-| AC-03 | Binary heap passes tests | pending verify |
-| AC-04 | Iterative SCC works | pending verify |
-| AC-05 | Dijkstra exact | pending verify |
-| AC-06 | A* agrees with Dijkstra | pending verify |
-| AC-07 | Bidirectional agrees with Dijkstra | pending verify |
-| AC-08 | ≥ 10,000 agreement tests pass | pending verify |
-| AC-09 | Simulator processes delivery events | pending verify |
-| AC-10 | Nearest policy | pending verify |
-| AC-11 | Greedy ETA policy | pending verify |
-| AC-12 | Identical inputs → identical hashes | pending verify |
-| AC-13 | Local viewer shows a recorded simulation | pending verify |
-| AC-14 | Routing latency and memory benchmarks | pending verify |
-| AC-15 | Policies compared fairly | pending verify |
-| AC-16 | Builds with documented instructions | pending verify |
+| AC-01 | Tricity OSM data imported | PASS: import of committed extract (>100k nodes) + `osm import:*` fixture tests |
+| AC-02 | Directed CSR graph correct | PASS: `dispatchlab info` (validate, SCC=1, id mapping) + `graph:*` tests |
+| AC-03 | Binary heap passes tests | PASS: `heap:*` (randomized vs std::priority_queue, invariant checks) |
+| AC-04 | Iterative SCC works | PASS: `scc:*` (CLRS fixture, 1M-node path/cycle, brute-force oracle) |
+| AC-05 | Dijkstra exact | PASS: `dijkstra:*` + Floyd–Warshall oracle on random graphs |
+| AC-06 | A* agrees with Dijkstra | PASS: 10k agreement + `astar:*` (admissibility, per-edge bound) |
+| AC-07 | Bidirectional agrees with Dijkstra | PASS: 10k agreement + `bidirectional:*` |
+| AC-08 | ≥ 10,000 agreement tests pass | PASS: `routing_agreement --queries 10000` (costs equal, path sums == cost) |
+| AC-09 | Simulator processes delivery events | PASS: 7 event types, `check-log` invariants, 5/5 corrupted logs rejected, `simulator:*`, `replay:*`, `event queue:*` |
+| AC-10 | Nearest policy | PASS: `simulate --policy nearest` + `dispatch: nearest*` |
+| AC-11 | Greedy ETA policy | PASS: `simulate --policy greedy_eta` + `dispatch: greedy eta*` |
+| AC-12 | Identical inputs → identical hashes | PASS: two runs → byte-identical logs + equal FNV-1a hash; replay hash equal; different seed → different hash |
+| AC-13 | Local viewer shows a recorded simulation | PASS: `export-viewer`, no network refs, `validate-replay` (re-hash), Node self-test of viewer core |
+| AC-14 | Routing latency and memory benchmarks | PASS: benchmark_graph/routing/dispatch → PERFORMANCE.md with environment fields |
+| AC-15 | Policies compared fairly | PASS: experiment (4 sizes × 3 traffic × 5 paired seeds) + `check-experiment` (same scenario hash per cell) |
+| AC-16 | Builds with documented instructions | PASS: README quick start executed verbatim in a clean copy; subcommands and paths cross-checked |
 | AC-17 | CCH exact (optional) | not started |
 
 ## Known issues / notes

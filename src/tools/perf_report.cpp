@@ -109,16 +109,34 @@ void write_performance_report(const std::string& graph_json, const std::string& 
     }
     md << "\nThe shared graph (" << mib(R.at("graph_memory_bytes").as_double())
        << ") is excluded from per-algorithm memory. Bidirectional keeps two label sets and two heaps.\n\n";
+    if (const json::Value* cch = R.find("cch")) {
+        md << "CCH (P2) one-time preprocessing, measured separately from queries: total "
+           << f(cch->at("preprocessing_ms").as_double(), 0) << " ms (ordering " << f(cch->at("order_ms").as_double(), 0)
+           << " ms, contraction " << f(cch->at("contract_ms").as_double(), 0) << " ms, customization "
+           << f(cch->at("customize_ms").as_double(), 0) << " ms); re-customization for new weights alone: "
+           << f(cch->at("recustomize_ms").as_double(), 0) << " ms. Hierarchy: " << cch->at("upward_edges").as_int()
+           << " upward edges (input: " << cch->at("original_pairs").as_int() << " undirected node pairs), "
+           << cch->at("triangles").as_int() << " lower triangles, max upward degree "
+           << cch->at("max_up_degree").as_int() << ", " << mib(cch->at("hierarchy_bytes").as_double())
+           << ". Ordering: " << cch->at("ordering").as_string()
+           << ". CCH memory in the table above is its per-query workspace; the hierarchy is additional.\n\n";
+    }
     md << "By travel-time distance (Dijkstra cost):\n\n";
-    md << "| Distance | Queries | Dijkstra median (us) | Bidirectional median (us) | A* median (us) | Dijkstra settled | "
-          "Bidirectional settled | A* settled |\n|---|---:|---:|---:|---:|---:|---:|---:|\n";
+    const bool has_cch = R.find("cch") != nullptr;
+    md << "| Distance | Queries | Dijkstra median (us) | Bidirectional median (us) | A* median (us) |"
+       << (has_cch ? " CCH median (us) |" : "") << " Dijkstra settled | Bidirectional settled | A* settled |"
+       << (has_cch ? " CCH settled |" : "") << "\n|---|---:|---:|---:|---:|---:|---:|---:|"
+       << (has_cch ? "---:|---:|" : "") << "\n";
     for (const auto& b : R.at("buckets").as_array()) {
         md << "| " << b.at("label").as_string() << " | " << b.at("count").as_int() << " | "
            << f(b.at("dijkstra_median_us").as_double()) << " | " << f(b.at("bidirectional_median_us").as_double())
-           << " | " << f(b.at("astar_median_us").as_double()) << " | "
-           << f(b.at("dijkstra_settled_median").as_double(), 0) << " | "
+           << " | " << f(b.at("astar_median_us").as_double()) << " | ";
+        if (has_cch) md << f(b.at("cch_median_us").as_double()) << " | ";
+        md << f(b.at("dijkstra_settled_median").as_double(), 0) << " | "
            << f(b.at("bidirectional_settled_median").as_double(), 0) << " | "
-           << f(b.at("astar_settled_median").as_double(), 0) << " |\n";
+           << f(b.at("astar_settled_median").as_double(), 0) << " |";
+        if (has_cch) md << " " << f(b.at("cch_settled_median").as_double(), 0) << " |";
+        md << "\n";
     }
     md << "\n";
 
