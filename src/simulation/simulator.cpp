@@ -7,6 +7,7 @@
 
 #include "dispatchlab/dispatch.hpp"
 #include "dispatchlab/hash.hpp"
+#include "dispatchlab/sysinfo.hpp"
 
 namespace dispatchlab {
 
@@ -229,18 +230,6 @@ void StateMachine::check_global() const {
 }
 
 // ---------------------------------------------------------------- metrics
-
-namespace {
-
-double percentile(std::vector<double> v, double p) {
-    if (v.empty()) return 0.0;
-    std::sort(v.begin(), v.end());
-    // Nearest-rank percentile.
-    const auto rank = static_cast<std::size_t>(std::ceil(p / 100.0 * static_cast<double>(v.size())));
-    return v[std::min(v.size() - 1, rank == 0 ? 0 : rank - 1)];
-}
-
-}  // namespace
 
 SimMetrics compute_metrics(const Scenario& sc, const SimState& st) {
     SimMetrics m;

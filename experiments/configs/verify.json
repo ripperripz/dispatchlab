@@ -1,0 +1,50 @@
+{
+  "experiment_id": "verify-small-medium",
+  "routing_algorithm": "astar",
+  "policies": [
+    "nearest",
+    "greedy_eta"
+  ],
+  "sizes": [
+    {
+      "name": "small",
+      "couriers": 20,
+      "orders": 100,
+      "window_min": 240
+    },
+    {
+      "name": "small_peak",
+      "couriers": 20,
+      "orders": 100,
+      "window_min": 120
+    },
+    {
+      "name": "medium",
+      "couriers": 100,
+      "orders": 1000,
+      "window_min": 480
+    },
+    {
+      "name": "medium_peak",
+      "couriers": 100,
+      "orders": 1000,
+      "window_min": 240
+    }
+  ],
+  "traffic": [
+    "free",
+    "moderate",
+    "heavy"
+  ],
+  "seeds": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "prep_min": 8,
+  "prep_max": 20,
+  "drain_min": 120,
+  "max_delivery_km": 6.0
+}

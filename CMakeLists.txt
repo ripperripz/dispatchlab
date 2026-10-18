@@ -69,7 +69,7 @@ if(DISPATCHLAB_WITH_OSM)
 endif()
 
 # ---------------------------------------------------------------- CLI
-add_executable(dispatchlab src/main.cpp)
+add_executable(dispatchlab src/main.cpp src/tools/viewer_export.cpp src/tools/perf_report.cpp)
 target_compile_options(dispatchlab PRIVATE ${DL_WARNINGS})
 if(DISPATCHLAB_WITH_OSM)
   target_link_libraries(dispatchlab PRIVATE dispatchlab_osm)

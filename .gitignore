@@ -12,3 +12,5 @@ viewer/replay.json
 viewer/replay_data.js
 *.log
 .DS_Store
+data/scenarios/*.jsonl
+build-verify/
