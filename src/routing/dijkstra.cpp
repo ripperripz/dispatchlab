@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <stdexcept>
 
+#include "dispatchlab/counters.hpp"
 #include "dispatchlab/routing.hpp"
 
 namespace dispatchlab {
@@ -25,6 +26,7 @@ template <class Access>
 RouteResult BasicDijkstra<Access>::query(NodeId s, NodeId t, bool with_path) {
     const std::uint32_t n = access_.num_nodes();
     if (s >= n || t >= n) throw std::out_of_range("Dijkstra: node id out of range");
+    count_routing_call();
     RouteResult r;
     ws_.reset();
     heap_.clear();
@@ -57,6 +59,7 @@ RouteResult BasicDijkstra<Access>::query(NodeId s, NodeId t, bool with_path) {
 template <class Access>
 void BasicDijkstra<Access>::one_to_all(NodeId s, QueryStats* stats) {
     if (s >= access_.num_nodes()) throw std::out_of_range("Dijkstra: node id out of range");
+    count_routing_call();
     ws_.reset();
     heap_.clear();
     ws_.set(s, 0, kInvalidNode);
@@ -95,6 +98,7 @@ std::vector<Dist> BasicDijkstra<Access>::one_to_many(NodeId s, const std::vector
             ++remaining;
         }
     }
+    count_routing_call();
     ws_.reset();
     heap_.clear();
     ws_.set(s, 0, kInvalidNode);

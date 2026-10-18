@@ -91,6 +91,50 @@ inline std::vector<std::vector<Dist>> floyd_warshall(const Graph& g) {
     return d;
 }
 
+// Two-way line 0-1-...-(n-1) along a parallel, every edge exactly `w` ms.
+inline Graph line(std::uint32_t n, Weight w = 60000) {
+    std::vector<EdgeInput> e;
+    std::vector<double> lat(n, 30.70), lon(n);
+    for (std::uint32_t i = 0; i < n; ++i) lon[i] = 76.70 + 0.002 * i;  // ~191 m apart
+    for (std::uint32_t i = 0; i + 1 < n; ++i) {
+        e.push_back({i, i + 1, w, 191000, 11});
+        e.push_back({i + 1, i, w, 191000, 11});
+    }
+    Graph g = build_csr(n, e, lat, lon);
+    g.meta.max_speed_kmh = 60;
+    g.meta.source = "fixture:line";
+    return g;
+}
+
+// rows x cols two-way grid (~200 m spacing), class-speed weights at 20 km/h,
+// strongly connected.
+inline Graph grid(std::uint32_t rows, std::uint32_t cols) {
+    const std::uint32_t n = rows * cols;
+    std::vector<double> lat(n), lon(n);
+    for (std::uint32_t r = 0; r < rows; ++r)
+        for (std::uint32_t c = 0; c < cols; ++c) {
+            lat[r * cols + c] = 30.70 + 0.0018 * r;
+            lon[r * cols + c] = 76.75 + 0.0021 * c;
+        }
+    std::vector<EdgeInput> e;
+    auto link = [&](std::uint32_t a, std::uint32_t b) {
+        const double m = haversine_m(lat[a], lon[a], lat[b], lon[b]);
+        const Weight w = travel_time_ms(m, 20);
+        const auto len = static_cast<std::uint32_t>(m * 1000);
+        e.push_back({a, b, w, len, 11});
+        e.push_back({b, a, w, len, 11});
+    };
+    for (std::uint32_t r = 0; r < rows; ++r)
+        for (std::uint32_t c = 0; c < cols; ++c) {
+            if (c + 1 < cols) link(r * cols + c, r * cols + c + 1);
+            if (r + 1 < rows) link(r * cols + c, (r + 1) * cols + c);
+        }
+    Graph g = build_csr(n, e, lat, lon);
+    g.meta.max_speed_kmh = 20;
+    g.meta.source = "fixture:grid";
+    return g;
+}
+
 inline std::string temp_path(const std::string& name) {
     return std::string(P_tmpdir) + "/dispatchlab_test_" + name;
 }

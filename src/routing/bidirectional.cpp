@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <stdexcept>
 
+#include "dispatchlab/counters.hpp"
 #include "dispatchlab/routing.hpp"
 
 namespace dispatchlab {
@@ -22,6 +23,7 @@ std::size_t BidirectionalDijkstra::memory_bytes() const {
 RouteResult BidirectionalDijkstra::query(NodeId s, NodeId t, bool with_path) {
     const std::uint32_t n = g_.num_nodes();
     if (s >= n || t >= n) throw std::out_of_range("Bidirectional: node id out of range");
+    count_routing_call();
     RouteResult r;
     fwd_.reset();
     bwd_.reset();

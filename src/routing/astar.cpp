@@ -2,6 +2,7 @@
 #include <stdexcept>
 
 #include "dispatchlab/geo.hpp"
+#include "dispatchlab/counters.hpp"
 #include "dispatchlab/routing.hpp"
 
 namespace dispatchlab {
@@ -23,6 +24,7 @@ Dist AStar::heuristic(NodeId v, NodeId t) const {
 RouteResult AStar::query(NodeId s, NodeId t, bool with_path) {
     const std::uint32_t n = g_.num_nodes();
     if (s >= n || t >= n) throw std::out_of_range("AStar: node id out of range");
+    count_routing_call();
     RouteResult r;
     ws_.reset();
     heap_.clear();
