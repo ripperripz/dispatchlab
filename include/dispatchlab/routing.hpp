@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -147,23 +148,41 @@ private:
     RoutingHeap fheap_, bheap_;
 };
 
-// A* with the geodesic lower bound h(n) = floor(haversine(n, t) / v_max), where
-// v_max = graph.meta.max_speed_kmh >= every speed used to compute weights.
-// Because weights are rounded up and h is rounded down, h is admissible (and
-// consistent up to floating-point rounding). Nodes may be re-expanded if a
-// cheaper g is found, so the result is exact even if consistency is violated
-// by rounding.
+// A* with a geodesic lower bound h(n) = floor(d(n, t) / v_max), where
+// v_max = graph.meta.max_speed_kmh >= every speed used to compute weights and d
+// is either the great-circle distance or the chord (straight line through the
+// sphere, chord <= arc). Weights are rounded up and h rounded down, so h is
+// admissible; nodes may be re-expanded if a cheaper g is found, so the result
+// is exact even if rounding violates consistency.
+// Unit-sphere coordinates (x, y, z per node, float) for the chord heuristic.
+// Build once per graph and share between AStar instances.
+using UnitVectors = std::vector<float>;
+std::shared_ptr<const UnitVectors> make_unit_vectors(const Graph& g);
+
+enum class Heuristic {
+    Haversine,  // great-circle distance (sin/cos/asin per evaluation)
+    Chord,      // straight-line chord through the sphere (one sqrt), never longer than the arc
+};
+
 class AStar {
 public:
-    explicit AStar(const Graph& g);
+    // Chord heuristic by default. `unit` may be shared between instances; if null
+    // and the heuristic needs it, the instance builds its own.
+    explicit AStar(const Graph& g, Heuristic hz = Heuristic::Chord, std::shared_ptr<const UnitVectors> unit = nullptr);
     RouteResult query(NodeId s, NodeId t, bool with_path = true, std::vector<NodeId>* trace = nullptr);
     Dist heuristic(NodeId v, NodeId t) const;
     std::uint32_t vmax_kmh() const { return vmax_kmh_; }
-    std::size_t memory_bytes() const { return ws_.memory_bytes() + heap_.capacity() * sizeof(HeapItem); }
+    // Includes the unit-vector table (12 B/node) even when it is shared.
+    std::size_t memory_bytes() const {
+        return ws_.memory_bytes() + heap_.capacity() * sizeof(HeapItem) + (unit_ ? unit_->size() * sizeof(float) : 0);
+    }
 
 private:
     const Graph& g_;
     std::uint32_t vmax_kmh_;
+    Heuristic hz_;
+    std::shared_ptr<const UnitVectors> unit_;
+    double ms_per_m_;  // 3600 / v_max
     SearchWorkspace ws_;
     RoutingHeap heap_;
 };

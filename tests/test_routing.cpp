@@ -172,6 +172,32 @@ TEST_CASE("astar: v_max bound holds for every edge (h(u->v) <= w(u,v))") {
         for (auto e = g.out_begin(u); e < g.out_end(u); ++e) REQUIRE(a.heuristic(u, g.targets[e]) <= g.weights[e]);
 }
 
+TEST_CASE("astar: chord and haversine heuristics are admissible and exact") {
+    Graph g = fixtures::random_geometric(600, 3, 77);
+    auto unit = make_unit_vectors(g);
+    AStar chord(g, Heuristic::Chord, unit), hav(g, Heuristic::Haversine);
+    Dijkstra d = make_dijkstra(g);
+    ReverseDijkstra rev = make_reverse_dijkstra(g);
+    Rng rng(9);
+    for (int k = 0; k < 15; ++k) {
+        const auto t = static_cast<NodeId>(rng.below(g.num_nodes()));
+        rev.one_to_all(t);
+        for (NodeId v = 0; v < g.num_nodes(); ++v) {
+            if (rev.dist(v) == kInfDist) continue;
+            REQUIRE(chord.heuristic(v, t) <= rev.dist(v));
+            REQUIRE(chord.heuristic(v, t) <= hav.heuristic(v, t));  // chord <= arc
+        }
+    }
+    for (NodeId u = 0; u < g.num_nodes(); ++u)
+        for (auto e = g.out_begin(u); e < g.out_end(u); ++e) REQUIRE(chord.heuristic(u, g.targets[e]) <= g.weights[e]);
+    for (int i = 0; i < 300; ++i) {
+        const auto s = static_cast<NodeId>(rng.below(g.num_nodes())), t = static_cast<NodeId>(rng.below(g.num_nodes()));
+        const Dist want = d.query(s, t, false).cost;
+        REQUIRE(chord.query(s, t, false).cost == want);
+        REQUIRE(hav.query(s, t, false).cost == want);
+    }
+}
+
 TEST_CASE("astar: requires v_max") {
     Graph g = fixtures::classic();
     g.meta.max_speed_kmh = 0;

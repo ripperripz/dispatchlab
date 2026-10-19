@@ -43,7 +43,8 @@ int main(int argc, char** argv) {
 
     Dijkstra dij = make_dijkstra(g);
     BidirectionalDijkstra bi(g);
-    AStar astar(g);
+    AStar astar(g, Heuristic::Chord);
+    AStar astar_hav(g, Heuristic::Haversine);
     // CCH preprocessing (ordering + contraction + customization) is timed
     // separately from queries; re-customization alone is timed as well.
     auto tp = bench::Clock::now();
@@ -52,8 +53,10 @@ int main(int argc, char** argv) {
     tp = bench::Clock::now();
     cch.customize(g);
     const double cch_recustomize_ms = bench::us_since(tp) / 1e3;
-    constexpr int A = 4;
-    const char* names[A] = {"Dijkstra", "Bidirectional", "A*", "CCH"};
+    // "A*" is the production configuration (chord heuristic); the haversine
+    // variant is kept as a row to measure the heuristic-cost change.
+    constexpr int A = 5;
+    const char* names[A] = {"Dijkstra", "Bidirectional", "A*", "CCH", "A* (haversine)"};
     std::vector<double> lat[A], settled[A];
     std::vector<Dist> cost(queries);
 
@@ -73,7 +76,10 @@ int main(int argc, char** argv) {
         t0 = bench::Clock::now();
         r[3] = cch.query(s, t);
         us[3] = bench::us_since(t0);
-        if (r[0].cost != r[1].cost || r[0].cost != r[2].cost || r[0].cost != r[3].cost) {
+        t0 = bench::Clock::now();
+        r[4] = astar_hav.query(s, t);
+        us[4] = bench::us_since(t0);
+        if (r[0].cost != r[1].cost || r[0].cost != r[2].cost || r[0].cost != r[3].cost || r[0].cost != r[4].cost) {
             std::fprintf(stderr, "cost mismatch on pair %llu\n", static_cast<unsigned long long>(i));
             return 1;
         }
@@ -85,7 +91,7 @@ int main(int argc, char** argv) {
         }
     }
     const std::size_t mem[A] = {dij.memory_bytes(), bi.memory_bytes(), astar.memory_bytes(),
-                                cch.query_memory_bytes()};
+                                cch.query_memory_bytes(), astar_hav.memory_bytes()};
 
     std::printf("routing benchmark: %llu queries (+%llu warm-up), seed %llu, graph %u nodes / %u edges\n",
                 static_cast<unsigned long long>(queries), static_cast<unsigned long long>(warmup),
@@ -148,7 +154,7 @@ int main(int argc, char** argv) {
         w.begin_object();
         w.kv("label", b.label).kv("count", static_cast<std::uint64_t>(bl[0].size()));
         for (int a = 0; a < A; ++a) {
-            const char* keys[A] = {"dijkstra", "bidirectional", "astar", "cch"};
+            const char* keys[A] = {"dijkstra", "bidirectional", "astar", "cch", "astar_haversine"};
             const std::string key = keys[a];
             w.kv(key + "_median_us", percentile(bl[a], 50));
             w.kv(key + "_settled_median", percentile(bs[a], 50));

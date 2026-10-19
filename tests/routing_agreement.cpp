@@ -81,13 +81,15 @@ int main(int argc, char** argv) {
                     st.max_up_degree);
     }
 
+    const auto unit = make_unit_vectors(g);  // shared chord-heuristic coordinates
+
     std::atomic<std::uint64_t> next{0}, failures{0}, unreachable{0}, checked{0};
     std::vector<Dist> costs(queries, 0);
     std::mutex io;
     auto worker = [&] {
         Dijkstra dij = make_dijkstra(g);
         BidirectionalDijkstra bi(g);
-        AStar astar(g);
+        AStar astar(g, Heuristic::Chord, unit);
         std::unique_ptr<CCH> cch = with_cch ? std::make_unique<CCH>(*cch_proto) : nullptr;
         while (true) {
             const std::uint64_t i = next.fetch_add(1);
