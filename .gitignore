@@ -15,3 +15,5 @@ viewer/replay_data.js
 data/scenarios/*.jsonl
 build-verify/
 viewer/results_data.js
+.impeccable/review/
+.impeccable/build/
