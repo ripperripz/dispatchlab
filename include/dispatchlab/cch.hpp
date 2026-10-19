@@ -35,7 +35,8 @@ public:
     // (e.g. a traffic scenario of the same graph).
     void customize(const Graph& g);
 
-    RouteResult query(NodeId s, NodeId t, bool with_path = true);
+    // `trace` receives settled nodes (original ids) in settle order.
+    RouteResult query(NodeId s, NodeId t, bool with_path = true, std::vector<NodeId>* trace = nullptr);
 
     const CchStats& stats() const { return stats_; }
     std::size_t memory_bytes() const;  // hierarchy (topology + metric), excluding query workspaces

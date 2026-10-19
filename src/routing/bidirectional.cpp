@@ -20,7 +20,7 @@ std::size_t BidirectionalDijkstra::memory_bytes() const {
 // cost(P) >= top_f + top_b. Hence once top_f + top_b >= mu, mu is optimal.
 // Stale heap entries only make the tops smaller (never larger than the true
 // minimum label), so testing with them is conservative and still correct.
-RouteResult BidirectionalDijkstra::query(NodeId s, NodeId t, bool with_path) {
+RouteResult BidirectionalDijkstra::query(NodeId s, NodeId t, bool with_path, std::vector<NodeId>* trace) {
     const std::uint32_t n = g_.num_nodes();
     if (s >= n || t >= n) throw std::out_of_range("Bidirectional: node id out of range");
     count_routing_call();
@@ -48,6 +48,7 @@ RouteResult BidirectionalDijkstra::query(NodeId s, NodeId t, bool with_path) {
             if (top.key != fwd_.dist(top.node)) continue;
             ++r.stats.settled;
             const NodeId u = top.node;
+            if (trace) trace->push_back(u);
             const std::uint32_t end = g_.offsets[u + 1];
             for (std::uint32_t e = g_.offsets[u]; e < end; ++e) {
                 const NodeId v = g_.targets[e];
@@ -71,6 +72,7 @@ RouteResult BidirectionalDijkstra::query(NodeId s, NodeId t, bool with_path) {
             if (top.key != bwd_.dist(top.node)) continue;
             ++r.stats.settled;
             const NodeId v = top.node;
+            if (trace) trace->push_back(v);
             const std::uint32_t end = g_.rev_offsets[v + 1];
             for (std::uint32_t e = g_.rev_offsets[v]; e < end; ++e) {
                 const NodeId u = g_.rev_sources[e];

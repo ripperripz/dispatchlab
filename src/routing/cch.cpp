@@ -215,7 +215,7 @@ void CCH::customize(const Graph& g) {
     stats_.customize_ms = ms_since(t0);
 }
 
-RouteResult CCH::query(NodeId s, NodeId t, bool with_path) {
+RouteResult CCH::query(NodeId s, NodeId t, bool with_path, std::vector<NodeId>* trace) {
     if (s >= n_ || t >= n_) throw std::out_of_range("CCH: node id out of range");
     count_routing_call();
     RouteResult r;
@@ -243,6 +243,7 @@ RouteResult CCH::query(NodeId s, NodeId t, bool with_path) {
         if (top.key != ws.dist(top.node)) continue;
         ++r.stats.settled;
         const std::uint32_t x = top.node;
+        if (trace) trace->push_back(order_[x]);
         if (other.dist(x) != kInfDist && top.key + other.dist(x) < mu) {
             mu = top.key + other.dist(x);
             meet = x;

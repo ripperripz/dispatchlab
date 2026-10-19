@@ -14,3 +14,4 @@ viewer/replay_data.js
 .DS_Store
 data/scenarios/*.jsonl
 build-verify/
+viewer/results_data.js

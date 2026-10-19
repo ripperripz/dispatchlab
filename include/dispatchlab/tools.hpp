@@ -17,8 +17,9 @@ struct ViewerMeta {
 // Builds the self-contained replay document consumed by viewer/index.html:
 // road geometry, entities, orders and the full event log (with route paths).
 // Throws if a travel event has no path (simulate with paths enabled).
+// include_network=false omits nodes/edges (the live console already holds the network).
 std::string build_viewer_replay(const Graph& g, const Scenario& sc, const std::vector<LogEvent>& log,
-                                const ViewerMeta& meta);
+                                const ViewerMeta& meta, bool include_network = true);
 
 // Structural + semantic validation of a replay document; replays its events
 // through the StateMachine and compares the final hash with meta. Returns ""

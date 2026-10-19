@@ -38,11 +38,19 @@ ctest --test-dir build --output-on-failure
 ./build/dispatchlab gen-scenario data/processed/tricity.graph data/scenarios/demo.json --couriers 40 --orders 300 --seed 42 --traffic moderate
 ./build/dispatchlab simulate data/processed/tricity.graph data/scenarios/demo.json --policy greedy_eta --log data/scenarios/demo_events.jsonl
 ./build/dispatchlab replay data/scenarios/demo.json data/scenarios/demo_events.jsonl
-./build/dispatchlab export-viewer data/processed/tricity.graph data/scenarios/demo.json data/scenarios/demo_events.jsonl --policy greedy_eta --out viewer/replay.json --js viewer/replay_data.js
+./build/dispatchlab export-viewer data/processed/tricity.graph data/scenarios/demo.json data/scenarios/demo_events.jsonl --policy greedy_eta --out viewer/replay.json --js viewer/replay_data.js --results-js viewer/results_data.js
 ```
 <!-- verify:quickstart:end -->
 
-Then open `viewer/index.html` in a browser by double-clicking it. You don't need a server.
+Then start the console and open http://127.0.0.1:8080:
+
+```bash
+./build/dispatchlab serve data/processed/tricity.graph
+```
+
+Without a server, `viewer/index.html` also opens directly from disk (double-click it). It shows the
+exported replay plus the benchmark and experiment results; the live features ask you to start
+`serve`.
 
 ## Full verification
 
@@ -81,6 +89,7 @@ Run `./build/dispatchlab help` for all options.
 | `dispatchlab check-experiment experiments/results/policy_comparison.csv` | fairness check (same scenario hash per cell) |
 | `dispatchlab export-viewer <graph> <scenario> <events.jsonl> --out viewer/replay.json --js viewer/replay_data.js` | viewer replay document |
 | `dispatchlab validate-replay viewer/replay.json` | validate a replay and re-check its hash |
+| `dispatchlab serve <graph> --port 8080` | the console: live frontend + JSON API on 127.0.0.1 |
 | `dispatchlab perf-report ...` | regenerate the measured sections of PERFORMANCE.md |
 
 Benchmarks are separate binaries: `./build/benchmark_graph`, `./build/benchmark_routing` and
@@ -101,14 +110,29 @@ traffic scenarios and five paired seeds. Results land in `policy_comparison.csv`
 reproducibility metadata (dataset, seeds, compiler, hardware, parameters), and in
 `policy_summary.md` (paired differences and win counts).
 
-## Viewer
+## Console (frontend)
 
-`viewer/` is plain HTML, CSS and JS: a canvas road map with couriers coloured by status, restaurants,
-active customers and routes in flight. It has play/pause, replay, a speed selector, a scrubbable
-timeline, a clickable event list and a metrics panel (total orders, completed deliveries, average
-delivery time, available couriers). It loads `replay_data.js` through a `<script>` tag, which works
-from `file://`. You can also open or drop any `replay.json` through the button in the top bar. It uses
-no external map tiles or APIs.
+`dispatchlab serve <graph> [--port 8080]` runs a small HTTP server built into the binary (POSIX
+sockets, loopback interface only, no extra dependencies). It serves the console in `viewer/` and a
+JSON API computed live by the engine:
+
+| View | What it does | API |
+|---|---|---|
+| Overview | dataset, engine facts (CCH, validation), headline benchmark and policy results | `/api/info`, `/api/network`, `/api/results` |
+| Routing lab | click two points (or press R). All four algorithms run on the engine; compare cost, nodes settled and latency, and watch their search spaces unfold in settle order side by side | `/api/route` |
+| Simulation | configure couriers, orders, seed, traffic and policy; run on the engine; play back couriers and orders with a timeline and event log; the replay is verified against the final state hash | `/api/simulate` |
+| Policies | Nearest vs Greedy ETA on one shared scenario (metrics, deliveries over time, delivery-time distribution), plus a paired-seed explorer over the experiment results | `/api/compare`, `/api/results` |
+| Benchmarks | latency percentiles, search effort, trip-length buckets, CCH preprocessing, CSR vs adjacency, dispatch decision latency | `/api/results` |
+| Correctness | live algorithm agreement, determinism with replay, rejection of corrupted logs | `/api/agreement`, `/api/determinism`, `/api/selftest` |
+
+The console is plain HTML, CSS and JavaScript with no framework and no build step. Fonts (Geist, OFL)
+are self-hosted in `viewer/fonts/`, and it loads nothing from any other host. It follows the system
+light/dark theme, with a manual toggle. The console's simulation hash is identical to the CLI's for
+the same parameters, and `scripts/verify.sh` checks that.
+
+**Offline:** opened from `file://`, the console reads `replay_data.js` and `results_data.js` (written
+by `export-viewer --js ... --results-js ...`). Overview, Simulation (the recorded replay), Policies
+results and Benchmarks work; the live-only parts explain how to start the server.
 
 ## Repository layout
 
@@ -124,7 +148,8 @@ src/main.cpp          CLI
 tests/                doctest unit tests, fixtures, routing_agreement.cpp
 benchmarks/           graph / routing / dispatch benchmarks (+ results/)
 experiments/          configs/, results/
-viewer/               offline replay viewer
+src/server/           loopback HTTP server + console JSON API
+viewer/               console frontend (views/, fonts/, offline bundles)
 data/raw/             clipped OSM extract (ODbL)
 scripts/              verify.sh, fetch_data.sh
 ```

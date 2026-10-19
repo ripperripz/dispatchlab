@@ -7,18 +7,27 @@
   const STATUS = { IDLE: 'idle', TO_RESTAURANT: 'to_restaurant', AT_RESTAURANT: 'at_restaurant', TO_CUSTOMER: 'to_customer' };
   const ORDER = { NOT_CREATED: 'not_created', PENDING: 'pending', ASSIGNED: 'assigned', PICKED_UP: 'picked_up', DELIVERED: 'delivered' };
 
-  function buildModel(doc) {
+  // `net` (optional) supplies the network when the document omits it, as the
+  // live console's /api/simulate does: {n, lon, lat, edges, arterial, bbox}.
+  function buildModel(doc, net) {
     if (!doc || doc.format !== 'dispatchlab-replay-1') throw new Error('not a DispatchLab replay (format tag missing)');
-    const n = doc.nodes.length / 2;
-    const lon = new Float64Array(n);
-    const lat = new Float64Array(n);
-    for (let i = 0; i < n; i++) { lon[i] = doc.nodes[2 * i]; lat[i] = doc.nodes[2 * i + 1]; }
+    let n, lon, lat;
+    if (doc.nodes) {
+      n = doc.nodes.length / 2;
+      lon = new Float64Array(n);
+      lat = new Float64Array(n);
+      for (let i = 0; i < n; i++) { lon[i] = doc.nodes[2 * i]; lat[i] = doc.nodes[2 * i + 1]; }
+    } else if (net) {
+      ({ n, lon, lat } = net);
+    } else {
+      throw new Error('replay has no network and none was supplied');
+    }
     const model = {
       meta: doc.meta,
-      bbox: doc.bbox,
+      bbox: doc.bbox || (net && net.bbox),
       n, lon, lat,
-      edges: doc.edges,
-      edgeArterial: doc.edge_arterial,
+      edges: doc.edges || (net && net.edges),
+      edgeArterial: doc.edge_arterial || (net && net.arterial),
       restaurants: doc.restaurants.map(([id, node]) => ({ id, node })),
       customers: doc.customers.map(([id, node]) => ({ id, node })),
       couriers: doc.couriers.map(([id, node]) => ({ id, node })),

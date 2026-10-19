@@ -88,6 +88,10 @@ public:
         key(k);
         return value(v);
     }
+    Writer& kv(std::string_view k, double v, int precision) {
+        key(k);
+        return value(v, precision);
+    }
     const std::string& str() const { return out_; }
     std::string take() { return std::move(out_); }
 

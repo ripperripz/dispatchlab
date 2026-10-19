@@ -19,7 +19,7 @@ void write_event(json::Writer& w, const LogEvent& e) {
 }  // namespace
 
 std::string build_viewer_replay(const Graph& g, const Scenario& sc, const std::vector<LogEvent>& log,
-                                const ViewerMeta& meta) {
+                                const ViewerMeta& meta, bool include_network) {
     const ReplayResult rep = replay(sc, log);  // also validates the log
     double min_lon = 1e9, min_lat = 1e9, max_lon = -1e9, max_lat = -1e9;
     for (NodeId v = 0; v < g.num_nodes(); ++v) {
@@ -43,6 +43,7 @@ std::string build_viewer_replay(const Graph& g, const Scenario& sc, const std::v
     w.kv("graph_nodes", g.num_nodes());
     w.end_object();
     w.key("bbox").begin_array().value(min_lon, 6).value(min_lat, 6).value(max_lon, 6).value(max_lat, 6).end_array();
+    if (include_network) {
     // Node coordinates as a flat [lon, lat, lon, lat, ...] array (5 decimals ~ 1 m).
     w.key("nodes").begin_array();
     for (NodeId v = 0; v < g.num_nodes(); ++v) w.value(g.lon[v], 5).value(g.lat[v], 5);
@@ -64,6 +65,7 @@ std::string build_viewer_replay(const Graph& g, const Scenario& sc, const std::v
     w.key("edge_arterial").begin_array();
     for (auto a : arterial) w.value(static_cast<unsigned>(a));
     w.end_array();
+    }
     auto pairs = [&](const char* name, const auto& v) {
         w.key(name).begin_array();
         for (const auto& x : v) w.begin_array().value(x.id).value(x.location).end_array();

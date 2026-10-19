@@ -40,6 +40,7 @@ add_library(dispatchlab_core STATIC
   src/util/json.cpp
   src/util/sysinfo.cpp
   src/experiments/experiment.cpp
+  src/server/http_server.cpp
 )
 target_include_directories(dispatchlab_core PUBLIC include)
 target_compile_options(dispatchlab_core PRIVATE ${DL_WARNINGS})
@@ -70,7 +71,8 @@ if(DISPATCHLAB_WITH_OSM)
 endif()
 
 # ---------------------------------------------------------------- CLI
-add_executable(dispatchlab src/main.cpp src/tools/viewer_export.cpp src/tools/perf_report.cpp)
+add_executable(dispatchlab src/main.cpp src/tools/viewer_export.cpp src/tools/perf_report.cpp
+  src/server/console_api.cpp)
 target_compile_options(dispatchlab PRIVATE ${DL_WARNINGS})
 if(DISPATCHLAB_WITH_OSM)
   target_link_libraries(dispatchlab PRIVATE dispatchlab_osm)
@@ -93,6 +95,7 @@ set(DL_TEST_SOURCES
   tests/test_dispatch.cpp
   tests/test_replay.cpp
   tests/test_cch.cpp
+  tests/test_server.cpp
 )
 if(DISPATCHLAB_WITH_OSM)
   list(APPEND DL_TEST_SOURCES tests/test_osm_import.cpp)

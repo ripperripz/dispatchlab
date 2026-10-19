@@ -3,74 +3,71 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DispatchLab Replay</title>
+  <title>DispatchLab Console</title>
+  <meta name="color-scheme" content="light dark">
+  <link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="style.css">
+  <script>
+    // Resolve the theme before first paint (system / light / dark).
+    (function () {
+      var pref = 'system';
+      try { pref = localStorage.getItem('dl-theme') || 'system'; } catch (e) {}
+      var dark = pref === 'dark' || (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    })();
+  </script>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">DispatchLab <span class="muted">replay viewer</span></div>
-    <div id="meta" class="meta muted">No replay loaded</div>
-    <label class="file-btn">Open replay.json<input id="file" type="file" accept=".json,application/json"></label>
-  </header>
-
-  <main class="layout">
-    <section class="map-wrap">
-      <canvas id="map" aria-label="Road network with couriers and orders"></canvas>
-      <div id="drop" class="drop hidden">
-        <p><strong>No replay data found.</strong></p>
-        <p>Run <code>dispatchlab export-viewer ... --js viewer/replay_data.js</code> and reload,<br>
-           or open / drop a <code>replay.json</code> file here.</p>
+  <div class="app" id="app">
+    <aside class="sidebar" id="sidebar" aria-label="Primary">
+      <a class="brand" href="#/overview" aria-label="DispatchLab overview">
+        <svg class="brand-mark" viewBox="0 0 26 26" aria-hidden="true">
+          <rect x="0.5" y="0.5" width="25" height="25" rx="7" fill="var(--invert-bg)"/>
+          <path d="M7 18.5 L7 12.5 Q7 10 9.5 10 L16 10 Q19 10 19 7.5" fill="none" stroke="var(--invert-text)" stroke-width="1.7" stroke-linecap="round"/>
+          <circle cx="7" cy="18.5" r="2.1" fill="var(--invert-text)"/>
+          <circle cx="19" cy="7.5" r="2.4" fill="var(--accent)"/>
+        </svg>
+        <div>
+          <div class="brand-name">DispatchLab</div>
+          <div class="brand-sub">Tricity · C++20 engine</div>
+        </div>
+      </a>
+      <nav id="nav"></nav>
+      <div class="sidebar-foot">
+        <div class="conn" id="conn" role="status" aria-live="polite">
+          <span class="dot" id="conn-dot"></span>
+          <div><strong id="conn-title">Connecting…</strong><span class="muted" id="conn-sub">Looking for the engine</span></div>
+        </div>
+        <div id="theme"></div>
       </div>
-      <div class="legend">
-        <span><i class="dot idle"></i>idle courier</span>
-        <span><i class="dot to_restaurant"></i>to restaurant</span>
-        <span><i class="dot at_restaurant"></i>waiting at restaurant</span>
-        <span><i class="dot to_customer"></i>delivering</span>
-        <span><i class="sq"></i>restaurant</span>
-        <span><i class="ring"></i>customer (active order)</span>
-      </div>
-    </section>
-
-    <aside class="side">
-      <section class="panel">
-        <h2>Metrics</h2>
-        <dl class="metrics">
-          <dt>Simulated time</dt><dd id="m-time">00:00:00</dd>
-          <dt>Total orders</dt><dd id="m-total">0</dd>
-          <dt>Created</dt><dd id="m-created">0</dd>
-          <dt>Completed deliveries</dt><dd id="m-delivered">0</dd>
-          <dt>Average delivery time</dt><dd id="m-avg">–</dd>
-          <dt>Waiting for courier</dt><dd id="m-pending">0</dd>
-          <dt>Active deliveries</dt><dd id="m-active">0</dd>
-          <dt>Available couriers</dt><dd id="m-available">0</dd>
-        </dl>
-      </section>
-      <section class="panel timeline-panel">
-        <h2>Event timeline <span id="ev-count" class="muted"></span></h2>
-        <ol id="timeline" class="timeline"></ol>
-      </section>
     </aside>
-  </main>
+    <div class="scrim" id="scrim"></div>
+    <div class="main">
+      <header class="topbar">
+        <button class="btn ghost icon menu-btn" id="menu-btn" type="button" aria-label="Open navigation"></button>
+        <div class="crumbs"><span>DispatchLab</span><span class="sep">/</span><strong id="crumb">Overview</strong></div>
+        <div class="spacer"></div>
+        <span class="badge" id="dataset-badge" hidden></span>
+      </header>
+      <div class="view" id="view" tabindex="-1"></div>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <footer class="controls">
-    <button id="play" type="button">Play</button>
-    <button id="replay" type="button">Replay</button>
-    <label>Speed
-      <select id="speed">
-        <option value="30">30×</option>
-        <option value="60" selected>60×</option>
-        <option value="180">180×</option>
-        <option value="600">600×</option>
-        <option value="1800">1800×</option>
-      </select>
-    </label>
-    <input id="scrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Timeline">
-    <span id="clock" class="clock">00:00:00</span>
-  </footer>
-
-  <!-- Generated by `dispatchlab export-viewer --js`; defines window.DISPATCHLAB_REPLAY. -->
+  <!-- Offline data, written by `dispatchlab export-viewer --js ... --results-js ...` (optional when served). -->
   <script src="replay_data.js"></script>
+  <script src="results_data.js"></script>
   <script src="core.js"></script>
+  <script src="ui.js"></script>
+  <script src="api.js"></script>
+  <script src="map.js"></script>
+  <script src="charts.js"></script>
+  <script src="views/overview.js"></script>
+  <script src="views/routing.js"></script>
+  <script src="views/simulation.js"></script>
+  <script src="views/policies.js"></script>
+  <script src="views/benchmarks.js"></script>
+  <script src="views/correctness.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

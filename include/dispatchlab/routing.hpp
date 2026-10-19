@@ -107,7 +107,8 @@ template <class Access>
 class BasicDijkstra {
 public:
     explicit BasicDijkstra(Access access);
-    RouteResult query(NodeId s, NodeId t, bool with_path = true);
+    // `trace`, when given, receives every settled node in settle order (visualization).
+    RouteResult query(NodeId s, NodeId t, bool with_path = true, std::vector<NodeId>* trace = nullptr);
     // Distances from s to each target (kInfDist if unreachable). Stops as soon as
     // every target is settled. With CsrIn this yields distances *to* s.
     std::vector<Dist> one_to_many(NodeId s, const std::vector<NodeId>& targets,
@@ -137,7 +138,7 @@ inline ReverseDijkstra make_reverse_dijkstra(const Graph& g) { return ReverseDij
 class BidirectionalDijkstra {
 public:
     explicit BidirectionalDijkstra(const Graph& g);
-    RouteResult query(NodeId s, NodeId t, bool with_path = true);
+    RouteResult query(NodeId s, NodeId t, bool with_path = true, std::vector<NodeId>* trace = nullptr);
     std::size_t memory_bytes() const;
 
 private:
@@ -155,7 +156,7 @@ private:
 class AStar {
 public:
     explicit AStar(const Graph& g);
-    RouteResult query(NodeId s, NodeId t, bool with_path = true);
+    RouteResult query(NodeId s, NodeId t, bool with_path = true, std::vector<NodeId>* trace = nullptr);
     Dist heuristic(NodeId v, NodeId t) const;
     std::uint32_t vmax_kmh() const { return vmax_kmh_; }
     std::size_t memory_bytes() const { return ws_.memory_bytes() + heap_.capacity() * sizeof(HeapItem); }

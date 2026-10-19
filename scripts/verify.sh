@@ -259,15 +259,31 @@ record "AC-14 Routing latency and memory benchmarks completed" $rc
 # ----------------------------------------------------------------------------
 log "AC-13: replay JSON for the local viewer (no server, no external map API)"
 rc=0
-run "$OUT/export.log" "$DL" export-viewer "$GRAPH" "$SCEN" "$OUT/run1.jsonl" --out viewer/replay.json --js viewer/replay_data.js || rc=1
-for f in viewer/index.html viewer/style.css viewer/app.js viewer/replay.json viewer/replay_data.js; do
+run "$OUT/export.log" "$DL" export-viewer "$GRAPH" "$SCEN" "$OUT/run1.jsonl" --policy greedy_eta \
+    --out viewer/replay.json --js viewer/replay_data.js --results-js viewer/results_data.js || rc=1
+for f in viewer/index.html viewer/style.css viewer/app.js viewer/core.js viewer/api.js viewer/map.js viewer/charts.js \
+         viewer/ui.js viewer/fonts/Geist-Variable.woff2 viewer/replay.json viewer/replay_data.js viewer/results_data.js; do
     [ -s "$f" ] || { echo "missing $f"; rc=1; }
 done
-# No network resources: no http(s) URLs or protocol-relative src/href in the viewer.
-if grep -n -E "https?://|src=\"//|href=\"//|fetch\(|XMLHttpRequest" viewer/index.html viewer/app.js viewer/style.css; then
-    echo "viewer references network resources"
+# No third-party network resources anywhere in the console: no external URLs
+# (only the loopback console address may appear, in help text, plus the SVG
+# namespace identifier, which is never fetched), no
+# protocol-relative src/href, no @import, and no XHR/WebSocket/EventSource/beacon.
+# fetch() may appear only in viewer/api.js, which accepts relative /api/ paths only.
+VIEWER_SRC=$(find viewer -type f \( -name '*.html' -o -name '*.js' -o -name '*.mjs' -o -name '*.css' \) | sort)
+if grep -n -E "https?://" $VIEWER_SRC | grep -v -E "https?://(127\.0\.0\.1|localhost)([:/\"'\` ]|$)" | grep -v -F "'http://www.w3.org/2000/svg'"; then
+    echo "viewer references an external host"
     rc=1
 fi
+if grep -n -E "src=\"//|href=\"//|url\(//|@import|XMLHttpRequest|new WebSocket|EventSource\(|sendBeacon" $VIEWER_SRC; then
+    echo "viewer uses a forbidden network mechanism"
+    rc=1
+fi
+if grep -n "fetch(" $VIEWER_SRC | grep -v "^viewer/api.js:"; then
+    echo "fetch() outside viewer/api.js"
+    rc=1
+fi
+grep -q "if (!path.startsWith('/api/'))" viewer/api.js || { echo "api.js lost its relative-path guard"; rc=1; }
 grep -q 'src="replay_data.js"' viewer/index.html || { echo "index.html does not load replay_data.js"; rc=1; }
 "$DL" validate-replay viewer/replay.json >"$OUT/validate_replay.log" 2>&1 || rc=1
 cat "$OUT/validate_replay.log"
@@ -280,6 +296,44 @@ else
     echo "node not installed: skipping JS self-test (structure validated by validate-replay)"
 fi
 record "AC-13 Local viewer displays a recorded simulation" $rc
+
+# ----------------------------------------------------------------------------
+log "CONSOLE: frontend connected to the engine (dispatchlab serve, loopback only)"
+rc=0
+"$DL" serve "$GRAPH" --port 0 --quiet >"$OUT/serve.log" 2>&1 &
+SERVE_PID=$!
+PORT=""
+for _ in $(seq 1 100); do
+    PORT=$(sed -n 's#.*listening http://127.0.0.1:\([0-9]*\)/.*#\1#p' "$OUT/serve.log")
+    [ -n "$PORT" ] && break
+    sleep 0.2
+done
+if [ -z "$PORT" ] || ! command -v curl >/dev/null 2>&1; then
+    echo "console server did not start (or curl missing)"; cat "$OUT/serve.log"; rc=1
+else
+    BASE="http://127.0.0.1:$PORT"
+    echo "console at $BASE"
+    curl -sf "$BASE/" -o "$OUT/console_index.html" && grep -q "DispatchLab Console" "$OUT/console_index.html" || { echo "index not served"; rc=1; }
+    curl -sf "$BASE/views/routing.js" -o /dev/null || { echo "console scripts not served"; rc=1; }
+    curl -sf "$BASE/api/info" -o "$OUT/api_info.json" || rc=1
+    grep -q "\"nodes\":${nodes}" "$OUT/api_info.json" || { echo "api/info node count differs from import"; rc=1; }
+    # A live route must agree across all four algorithms and match the CLI.
+    curl -sf "$BASE/api/route?s=17&t=90001&trace=0" -o "$OUT/api_route.json" || rc=1
+    grep -q '"agree":true' "$OUT/api_route.json" || { echo "api/route: algorithms disagree"; rc=1; }
+    cli_cost=$("$DL" route "$GRAPH" 17 90001 --algo dijkstra | sed -n 's/.*cost_ms=\([0-9]*\).*/\1/p')
+    grep -q "\"cost_ms\":${cli_cost}," "$OUT/api_route.json" || { echo "api/route cost differs from CLI ($cli_cost)"; rc=1; }
+    # A live simulation of the verify scenario must reproduce the CLI's final state hash.
+    curl -sf "$BASE/api/simulate?couriers=40&orders=300&seed=${SIM_SEED}&traffic=moderate&policy=greedy_eta" -o "$OUT/api_sim.json" || rc=1
+    grep -q "\"final_state_hash\":\"${h1}\"" "$OUT/api_sim.json" || { echo "api/simulate hash differs from CLI ($h1)"; rc=1; }
+    grep -q '"replay_verified":true' "$OUT/api_sim.json" || { echo "api/simulate replay not verified"; rc=1; }
+    curl -sf "$BASE/api/selftest" | grep -q '"detected":5,"total":5' || { echo "api/selftest did not reject 5/5"; rc=1; }
+    curl -sf "$BASE/api/results" | grep -q '"routing":{' || { echo "api/results missing benchmarks"; rc=1; }
+    code=$(curl -s -o /dev/null -w "%{http_code}" --path-as-is "$BASE/../CMakeLists.txt")
+    [ "$code" = "400" ] || { echo "path traversal not rejected (HTTP $code)"; rc=1; }
+fi
+kill "$SERVE_PID" 2>/dev/null
+wait "$SERVE_PID" 2>/dev/null
+record "CONSOLE live frontend connected to the engine" $rc
 
 # ----------------------------------------------------------------------------
 log "AC-16: README build/run instructions match the actual commands"

@@ -23,7 +23,7 @@ BasicDijkstra<Access>::BasicDijkstra(Access access) : access_(access), ws_(acces
 }
 
 template <class Access>
-RouteResult BasicDijkstra<Access>::query(NodeId s, NodeId t, bool with_path) {
+RouteResult BasicDijkstra<Access>::query(NodeId s, NodeId t, bool with_path, std::vector<NodeId>* trace) {
     const std::uint32_t n = access_.num_nodes();
     if (s >= n || t >= n) throw std::out_of_range("Dijkstra: node id out of range");
     count_routing_call();
@@ -38,6 +38,7 @@ RouteResult BasicDijkstra<Access>::query(NodeId s, NodeId t, bool with_path) {
         if (top.key != ws_.dist(top.node)) continue;  // stale duplicate
         ++r.stats.settled;
         const NodeId u = top.node;
+        if (trace) trace->push_back(u);
         if (u == t) {
             r.cost = top.key;
             break;

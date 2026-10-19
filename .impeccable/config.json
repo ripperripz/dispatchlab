@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "geist",
+        "createdAt": "2026-10-19T02:36:51.671Z",
+        "reason": "brief: user pinned Vercel x Cloudflare x Linear; Geist is Vercel's own UI typeface"
+      }
+    ]
+  }
+}

@@ -21,7 +21,7 @@ Dist AStar::heuristic(NodeId v, NodeId t) const {
 // and the geodesic distance to t is <= the sum of edge lengths of any path to t
 // (triangle inequality on the sphere). Traffic multipliers are >= 1 and only
 // increase weights. Hence h(n) <= true remaining cost.
-RouteResult AStar::query(NodeId s, NodeId t, bool with_path) {
+RouteResult AStar::query(NodeId s, NodeId t, bool with_path, std::vector<NodeId>* trace) {
     const std::uint32_t n = g_.num_nodes();
     if (s >= n || t >= n) throw std::out_of_range("AStar: node id out of range");
     count_routing_call();
@@ -38,6 +38,7 @@ RouteResult AStar::query(NodeId s, NodeId t, bool with_path) {
         // Stale if the key no longer matches g(u) + h(u).
         if (top.key != g_u + heuristic(u, t)) continue;
         ++r.stats.settled;
+        if (trace) trace->push_back(u);
         if (u == t) {
             r.cost = g_u;
             break;

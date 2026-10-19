@@ -25,7 +25,13 @@ ctest --test-dir build --output-on-failure                                 # uni
   `dispatch: greedy eta`, `replay:`, `osm import:`) are used as filters by `scripts/verify.sh`. Keep
   them.
 * `benchmarks/`: three benchmark binaries writing JSON to `benchmarks/results/`.
-* `viewer/`: framework-free. `core.js` is pure (tested by `selftest.mjs` under Node); `app.js` is the DOM.
+* `viewer/`: the console, framework-free classic scripts (no build). `core.js` is pure replay logic
+  (tested by `selftest.mjs` under Node); `ui.js` (DOM helpers, icons, format), `api.js` (the only file
+  allowed to call `fetch`, relative `/api/` paths only), `map.js` (canvas map), `charts.js`, and
+  `views/*.js` (one per route), with `app.js` as the shell. Design tokens live at the top of
+  `style.css`; the visual direction is in `.impeccable/surfaces/viewer-index-html.md` and DESIGN.md.
+* `src/server/`: `http_server.cpp` (loopback-only HTTP/1.1) and `console_api.cpp` (JSON API).
+  `dispatchlab serve` wires them together.
 
 ## Conventions and invariants
 

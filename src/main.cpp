@@ -8,13 +8,16 @@
 #include <string>
 #include <vector>
 
+#include <csignal>
 #include <fstream>
 
+#include "dispatchlab/console_api.hpp"
 #include "dispatchlab/counters.hpp"
 #include "dispatchlab/dispatch.hpp"
 #include "dispatchlab/experiment.hpp"
 #include "dispatchlab/graph.hpp"
 #include "dispatchlab/hash.hpp"
+#include "dispatchlab/http_server.hpp"
 #include "dispatchlab/json.hpp"
 #include "dispatchlab/road_model.hpp"
 #include "dispatchlab/routing.hpp"
@@ -97,8 +100,12 @@ void usage() {
         "  check-experiment <policy_comparison.csv>\n"
         "      Verify that every cell compared all policies on one identical scenario.\n"
         "  export-viewer <graph> <scenario.json> <events.jsonl> [--out viewer/replay.json]\n"
-        "                [--js viewer/replay_data.js] [--policy NAME]\n"
-        "      Write the replay document for viewer/index.html (works from file://).\n"
+        "                [--js viewer/replay_data.js] [--results-js viewer/results_data.js] [--policy NAME]\n"
+        "      Write the replay document (and optionally the benchmark/experiment bundle) for the\n"
+        "      console, so viewer/index.html works from file:// without a server.\n"
+        "  serve <graph> [--port 8080] [--root viewer] [--results .] [--quiet]\n"
+        "      Run the console on http://127.0.0.1:<port> (loopback only): live routing lab,\n"
+        "      simulations, policy comparison, benchmarks and correctness checks.\n"
         "  validate-replay <replay.json>\n"
         "      Validate a viewer replay document and re-check its final state hash.\n"
         "  perf-report --graph-json F --routing-json F --dispatch-json F [--experiments-md F] [--out PERFORMANCE.md]\n"
@@ -353,6 +360,10 @@ int cmd_export_viewer(const Args& a) {
     const std::string out = a.get("out", "viewer/replay.json");
     json::write_file(out, doc);
     if (a.has("js")) json::write_file(a.get("js", ""), "window.DISPATCHLAB_REPLAY = " + doc + ";\n");
+    if (a.has("results-js")) {
+        json::write_file(a.get("results-js", ""),
+                         "window.DISPATCHLAB_RESULTS = " + build_results_bundle(a.get("results", ".")) + ";\n");
+    }
     std::printf("viewer replay: %zu events, %.1f MB -> %s%s%s\n", log.size(), doc.size() / 1e6, out.c_str(),
                 a.has("js") ? " and " : "", a.get("js", "").c_str());
     return 0;
@@ -366,6 +377,24 @@ int cmd_validate_replay(const Args& a) {
         return 1;
     }
     std::printf("%s\nREPLAY_JSON_OK\n", summary.c_str());
+    return 0;
+}
+
+int cmd_serve(const Args& a) {
+    std::signal(SIGPIPE, SIG_IGN);
+    const auto t0 = std::chrono::steady_clock::now();
+    Graph g = load_graph(a.pos(0, "graph"));
+    ConsoleOptions opts;
+    opts.static_root = a.get("root", "viewer");
+    opts.results_root = a.get("results", ".");
+    ConsoleApi api(std::move(g), opts);
+    const auto port = static_cast<std::uint16_t>(a.num("port", 8080));
+    HttpServer server(port, [&api](const HttpRequest& req) { return api.handle(req); }, !a.has("quiet"));
+    std::printf("DispatchLab console ready in %.2fs: %u nodes, %u edges (CCH built)\n", secs_since(t0),
+                api.graph().num_nodes(), api.graph().num_edges());
+    std::printf("listening http://127.0.0.1:%u/  (loopback only; Ctrl+C to stop)\n", server.port());
+    std::fflush(stdout);
+    server.run();
     return 0;
 }
 
@@ -401,6 +430,7 @@ int main(int argc, char** argv) {
         if (cmd == "export-viewer") return cmd_export_viewer(args);
         if (cmd == "validate-replay") return cmd_validate_replay(args);
         if (cmd == "perf-report") return cmd_perf_report(args);
+        if (cmd == "serve") return cmd_serve(args);
         if (cmd == "help" || cmd == "--help" || cmd == "-h") {
             usage();
             return 0;
