@@ -1,0 +1,43 @@
+{
+  "benchmark": "layout_hardware_counters",
+  "graph": "northern.graph (17,176,411 nodes, 35,415,385 edges)",
+  "method": "/usr/bin/time -l (macOS) instructions retired and cycles elapsed; each layout run with 30 measured queries and with 0, the difference isolates the 30 queries x (Dijkstra + Bidirectional + A*); seed 20261018",
+  "layouts": [
+    {
+      "name": "OSM id order (baseline)",
+      "instructions": 230622912911,
+      "cycles": 183733525862,
+      "ipc": 1.255
+    },
+    {
+      "name": "random (control)",
+      "instructions": 229579532078,
+      "cycles": 448614524369,
+      "ipc": 0.512
+    },
+    {
+      "name": "BFS from centre",
+      "instructions": 228808816628,
+      "cycles": 224540151177,
+      "ipc": 1.019
+    },
+    {
+      "name": "DFS from centre",
+      "instructions": 227857267946,
+      "cycles": 158023127737,
+      "ipc": 1.442
+    },
+    {
+      "name": "Hilbert curve",
+      "instructions": 228270905328,
+      "cycles": 162313322676,
+      "ipc": 1.406
+    },
+    {
+      "name": "nested dissection",
+      "instructions": 227931560742,
+      "cycles": 166365389495,
+      "ipc": 1.37
+    }
+  ]
+}
