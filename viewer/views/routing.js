@@ -252,6 +252,12 @@
       function sweep() {
         if (!S.result) return;
         cancelAnimationFrame(raf);
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) {  // show the final state at once
+          progress = 1;
+          map.renderNow();
+          syncMinis();
+          return;
+        }
         sweepStart = performance.now();
         progress = 0;
         const tick = now => {

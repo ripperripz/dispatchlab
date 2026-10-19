@@ -1,0 +1,902 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-19T02:59:45+00:00",
+  "title": "Design System: DispatchLab",
+  "extensions": {
+    "themes": {
+      "light": ":root",
+      "dark": ":root[data-theme=\"dark\"]",
+      "resolution": "Inline head script reads localStorage 'dl-theme' (system | light | dark) and sets data-theme before first paint; colorMeta.<token>.dark holds the dark value."
+    },
+    "colorMeta": {
+      "background": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "#fafafa",
+        "dark": "#0a0a0a",
+        "tonalRamp": [
+          "#171717",
+          "#333333",
+          "#5c5c5c",
+          "#707070",
+          "#a8a8a8",
+          "#d6d6d6",
+          "#e8e8e8",
+          "#fafafa"
+        ]
+      },
+      "background-sunken": {
+        "role": "neutral",
+        "displayName": "Ink Well",
+        "canonical": "#f2f2f2",
+        "dark": "#060606",
+        "tonalRamp": [
+          "#171717",
+          "#333333",
+          "#5c5c5c",
+          "#707070",
+          "#a8a8a8",
+          "#d6d6d6",
+          "#e8e8e8",
+          "#fafafa"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Card White",
+        "canonical": "#ffffff",
+        "dark": "#111111",
+        "tonalRamp": [
+          "#171717",
+          "#333333",
+          "#5c5c5c",
+          "#707070",
+          "#a8a8a8",
+          "#d6d6d6",
+          "#e8e8e8",
+          "#fafafa"
+        ]
+      },
+      "surface-hover": {
+        "role": "neutral",
+        "displayName": "Surface Hover",
+        "canonical": "#f7f7f7",
+        "dark": "#181818",
+        "tonalRamp": [
+          "#171717",
+          "#333333",
+          "#5c5c5c",
+          "#707070",
+          "#a8a8a8",
+          "#d6d6d6",
+          "#e8e8e8",
+          "#fafafa"
+        ]
+      },
+      "surface-active": {
+        "role": "neutral",
+        "displayName": "Surface Active",
+        "canonical": "#f0f0f0",
+        "dark": "#1f1f1f",
+        "tonalRamp": [
+          "#171717",
+          "#333333",
+          "#5c5c5c",
+          "#707070",
+          "#a8a8a8",
+          "#d6d6d6",
+          "#e8e8e8",
+          "#fafafa"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#e8e8e8",
+        "dark": "#222222",
+        "tonalRamp": [
+          "#171717",
+          "#333333",
+          "#5c5c5c",
+          "#707070",
+          "#a8a8a8",
+          "#d6d6d6",
+          "#e8e8e8",
+          "#fafafa"
+        ]
+      },
+      "border-strong": {
+        "role": "neutral",
+        "displayName": "Strong Hairline",
+        "canonical": "#d6d6d6",
+        "dark": "#333333",
+        "tonalRamp": [
+          "#171717",
+          "#333333",
+          "#5c5c5c",
+          "#707070",
+          "#a8a8a8",
+          "#d6d6d6",
+          "#e8e8e8",
+          "#fafafa"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#171717",
+        "dark": "#ededed",
+        "tonalRamp": [
+          "#171717",
+          "#333333",
+          "#5c5c5c",
+          "#707070",
+          "#a8a8a8",
+          "#d6d6d6",
+          "#e8e8e8",
+          "#fafafa"
+        ]
+      },
+      "text-secondary": {
+        "role": "neutral",
+        "displayName": "Graphite",
+        "canonical": "#5c5c5c",
+        "dark": "#a3a3a3",
+        "tonalRamp": [
+          "#171717",
+          "#333333",
+          "#5c5c5c",
+          "#707070",
+          "#a8a8a8",
+          "#d6d6d6",
+          "#e8e8e8",
+          "#fafafa"
+        ]
+      },
+      "text-tertiary": {
+        "role": "neutral",
+        "displayName": "Ash",
+        "canonical": "#707070",
+        "dark": "#858585",
+        "tonalRamp": [
+          "#171717",
+          "#333333",
+          "#5c5c5c",
+          "#707070",
+          "#a8a8a8",
+          "#d6d6d6",
+          "#e8e8e8",
+          "#fafafa"
+        ]
+      },
+      "invert-background": {
+        "role": "neutral",
+        "displayName": "Inverted Ink",
+        "canonical": "#171717",
+        "dark": "#ededed",
+        "tonalRamp": [
+          "#171717",
+          "#333333",
+          "#5c5c5c",
+          "#707070",
+          "#a8a8a8",
+          "#d6d6d6",
+          "#e8e8e8",
+          "#fafafa"
+        ]
+      },
+      "invert-text": {
+        "role": "neutral",
+        "displayName": "Inverted Paper",
+        "canonical": "#fafafa",
+        "dark": "#0a0a0a",
+        "tonalRamp": [
+          "#171717",
+          "#333333",
+          "#5c5c5c",
+          "#707070",
+          "#a8a8a8",
+          "#d6d6d6",
+          "#e8e8e8",
+          "#fafafa"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Dispatch Orange",
+        "canonical": "#ea5a0c",
+        "dark": "#ff7a2e",
+        "tonalRamp": [
+          "#491c04",
+          "#792f06",
+          "#aa4109",
+          "#da540b",
+          "#f46d25",
+          "#f79864",
+          "#fbc5a8",
+          "#feefe7"
+        ]
+      },
+      "accent-text": {
+        "role": "primary",
+        "displayName": "Burnt Orange Text",
+        "canonical": "#c2410c",
+        "dark": "#ff8f4d",
+        "tonalRamp": [
+          "#481804",
+          "#782807",
+          "#a8380a",
+          "#d8480d",
+          "#f26227",
+          "#f58f65",
+          "#fac0a9",
+          "#feeee7"
+        ]
+      },
+      "accent-soft": {
+        "role": "primary",
+        "displayName": "Orange Wash",
+        "canonical": "rgba(234, 90, 12, 0.1)",
+        "dark": "rgba(255, 122, 46, 0.13)",
+        "tonalRamp": [
+          "#491c04",
+          "#792f06",
+          "#aa4109",
+          "#da540b",
+          "#f46d25",
+          "#f79864",
+          "#fbc5a8",
+          "#feefe7"
+        ]
+      },
+      "focus": {
+        "role": "secondary",
+        "displayName": "Signal Blue",
+        "canonical": "#0a6cff",
+        "dark": "#3b8bff",
+        "tonalRamp": [
+          "#001f4c",
+          "#003380",
+          "#0047b2",
+          "#005ce6",
+          "#1a75ff",
+          "#5c9dff",
+          "#a3c8ff",
+          "#e5f0ff"
+        ]
+      },
+      "ok": {
+        "role": "status",
+        "displayName": "Verified Green",
+        "canonical": "#15803d",
+        "dark": "#3fbf6a",
+        "tonalRamp": [
+          "#0b421f",
+          "#126e34",
+          "#199949",
+          "#20c55e",
+          "#3adf77",
+          "#73e89f",
+          "#b0f2c9",
+          "#e9fbf0"
+        ]
+      },
+      "ok-soft": {
+        "role": "status",
+        "displayName": "Verified Wash",
+        "canonical": "rgba(21, 128, 61, 0.1)",
+        "dark": "rgba(63, 191, 106, 0.12)",
+        "tonalRamp": [
+          "#0b421f",
+          "#126e34",
+          "#199949",
+          "#20c55e",
+          "#3adf77",
+          "#73e89f",
+          "#b0f2c9",
+          "#e9fbf0"
+        ]
+      },
+      "warn": {
+        "role": "status",
+        "displayName": "Caution Amber",
+        "canonical": "#b45309",
+        "dark": "#e5a23a",
+        "tonalRamp": [
+          "#492204",
+          "#793806",
+          "#aa4e08",
+          "#db650b",
+          "#f47e24",
+          "#f7a364",
+          "#fbcca8",
+          "#fef1e7"
+        ]
+      },
+      "warn-soft": {
+        "role": "status",
+        "displayName": "Caution Wash",
+        "canonical": "rgba(180, 83, 9, 0.1)",
+        "dark": "rgba(229, 162, 58, 0.13)",
+        "tonalRamp": [
+          "#492204",
+          "#793806",
+          "#aa4e08",
+          "#db650b",
+          "#f47e24",
+          "#f7a364",
+          "#fbcca8",
+          "#fef1e7"
+        ]
+      },
+      "err": {
+        "role": "status",
+        "displayName": "Fault Red",
+        "canonical": "#c81e1e",
+        "dark": "#f0605d",
+        "tonalRamp": [
+          "#430a0a",
+          "#6f1111",
+          "#9b1717",
+          "#c81e1e",
+          "#e13737",
+          "#ea7171",
+          "#f3afaf",
+          "#fce9e9"
+        ]
+      },
+      "err-soft": {
+        "role": "status",
+        "displayName": "Fault Wash",
+        "canonical": "rgba(200, 30, 30, 0.09)",
+        "dark": "rgba(240, 96, 93, 0.13)",
+        "tonalRamp": [
+          "#430a0a",
+          "#6f1111",
+          "#9b1717",
+          "#c81e1e",
+          "#e13737",
+          "#ea7171",
+          "#f3afaf",
+          "#fce9e9"
+        ]
+      },
+      "series-dijkstra": {
+        "role": "tertiary",
+        "displayName": "Dijkstra Blue",
+        "canonical": "#2f6feb",
+        "dark": "#5b93ff",
+        "tonalRamp": [
+          "#071c46",
+          "#0b2f74",
+          "#1042a3",
+          "#1455d1",
+          "#2e6eeb",
+          "#6a98f1",
+          "#abc5f7",
+          "#e8effd"
+        ]
+      },
+      "series-bidirectional": {
+        "role": "tertiary",
+        "displayName": "Bidirectional Teal",
+        "canonical": "#0e9384",
+        "dark": "#2ec4b0",
+        "tonalRamp": [
+          "#07463f",
+          "#0b7469",
+          "#10a392",
+          "#14d2bc",
+          "#2debd6",
+          "#6af1e2",
+          "#abf7ee",
+          "#e8fdfa"
+        ]
+      },
+      "series-astar": {
+        "role": "tertiary",
+        "displayName": "A* Violet",
+        "canonical": "#7c4dde",
+        "dark": "#a07cf5",
+        "tonalRamp": [
+          "#1d0c41",
+          "#30146c",
+          "#441c97",
+          "#5724c2",
+          "#713ddb",
+          "#9a75e5",
+          "#c6b2f1",
+          "#efe9fb"
+        ]
+      },
+      "series-cch": {
+        "role": "tertiary",
+        "displayName": "CCH Pink",
+        "canonical": "#d6336c",
+        "dark": "#f2648f",
+        "tonalRamp": [
+          "#400d1f",
+          "#6a1533",
+          "#951e47",
+          "#bf265c",
+          "#d94075",
+          "#e4779d",
+          "#f0b3c8",
+          "#fbeaf0"
+        ]
+      },
+      "policy-nearest": {
+        "role": "neutral",
+        "displayName": "Nearest Grey",
+        "canonical": "#8a8a8a",
+        "dark": "#9a9a9a",
+        "tonalRamp": [
+          "#171717",
+          "#333333",
+          "#5c5c5c",
+          "#707070",
+          "#a8a8a8",
+          "#d6d6d6",
+          "#e8e8e8",
+          "#fafafa"
+        ]
+      },
+      "policy-greedy-eta": {
+        "role": "primary",
+        "displayName": "Greedy ETA Orange",
+        "canonical": "#ea5a0c",
+        "dark": "#ff7a2e",
+        "tonalRamp": [
+          "#491c04",
+          "#792f06",
+          "#aa4109",
+          "#da540b",
+          "#f46d25",
+          "#f79864",
+          "#fbc5a8",
+          "#feefe7"
+        ]
+      },
+      "courier-idle": {
+        "role": "neutral",
+        "displayName": "Idle Courier",
+        "canonical": "#a8a8a8",
+        "dark": "#5e5e5e",
+        "tonalRamp": [
+          "#171717",
+          "#333333",
+          "#5c5c5c",
+          "#707070",
+          "#a8a8a8",
+          "#d6d6d6",
+          "#e8e8e8",
+          "#fafafa"
+        ]
+      },
+      "courier-to-restaurant": {
+        "role": "neutral",
+        "displayName": "En Route to Restaurant",
+        "canonical": "#5c5c5c",
+        "dark": "#a3a3a3",
+        "tonalRamp": [
+          "#171717",
+          "#333333",
+          "#5c5c5c",
+          "#707070",
+          "#a8a8a8",
+          "#d6d6d6",
+          "#e8e8e8",
+          "#fafafa"
+        ]
+      },
+      "courier-at-restaurant": {
+        "role": "status",
+        "displayName": "At Restaurant Amber",
+        "canonical": "#ca8a04",
+        "dark": "#e5a23a",
+        "tonalRamp": [
+          "#4b3301",
+          "#7d5502",
+          "#af7803",
+          "#e19a04",
+          "#fbb31e",
+          "#fcc95f",
+          "#fde1a5",
+          "#fff7e6"
+        ]
+      },
+      "courier-to-customer": {
+        "role": "neutral",
+        "displayName": "En Route to Customer",
+        "canonical": "#171717",
+        "dark": "#f5f5f5",
+        "tonalRamp": [
+          "#171717",
+          "#333333",
+          "#5c5c5c",
+          "#707070",
+          "#a8a8a8",
+          "#d6d6d6",
+          "#e8e8e8",
+          "#fafafa"
+        ]
+      },
+      "map-restaurant": {
+        "role": "primary",
+        "displayName": "Restaurant Orange",
+        "canonical": "#ea5a0c",
+        "dark": "#ff7a2e",
+        "tonalRamp": [
+          "#491c04",
+          "#792f06",
+          "#aa4109",
+          "#da540b",
+          "#f46d25",
+          "#f79864",
+          "#fbc5a8",
+          "#feefe7"
+        ]
+      },
+      "map-customer": {
+        "role": "neutral",
+        "displayName": "Customer Graphite",
+        "canonical": "#5c5c5c",
+        "dark": "#a3a3a3",
+        "tonalRamp": [
+          "#171717",
+          "#333333",
+          "#5c5c5c",
+          "#707070",
+          "#a8a8a8",
+          "#d6d6d6",
+          "#e8e8e8",
+          "#fafafa"
+        ]
+      },
+      "map-background": {
+        "role": "neutral",
+        "displayName": "Map Ground",
+        "canonical": "#f3f3f2",
+        "dark": "#0d0d0d",
+        "tonalRamp": [
+          "#171717",
+          "#333333",
+          "#5c5c5c",
+          "#707070",
+          "#a8a8a8",
+          "#d6d6d6",
+          "#e8e8e8",
+          "#fafafa"
+        ]
+      },
+      "map-road": {
+        "role": "neutral",
+        "displayName": "Road",
+        "canonical": "#d9d9d7",
+        "dark": "#303030",
+        "tonalRamp": [
+          "#171717",
+          "#333333",
+          "#5c5c5c",
+          "#707070",
+          "#a8a8a8",
+          "#d6d6d6",
+          "#e8e8e8",
+          "#fafafa"
+        ]
+      },
+      "map-arterial": {
+        "role": "neutral",
+        "displayName": "Arterial",
+        "canonical": "#ababa7",
+        "dark": "#5c5c5c",
+        "tonalRamp": [
+          "#171717",
+          "#333333",
+          "#5c5c5c",
+          "#707070",
+          "#a8a8a8",
+          "#d6d6d6",
+          "#e8e8e8",
+          "#fafafa"
+        ]
+      },
+      "map-casing": {
+        "role": "neutral",
+        "displayName": "Road Casing",
+        "canonical": "#ffffff",
+        "dark": "#0d0d0d",
+        "tonalRamp": [
+          "#171717",
+          "#333333",
+          "#5c5c5c",
+          "#707070",
+          "#a8a8a8",
+          "#d6d6d6",
+          "#e8e8e8",
+          "#fafafa"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "The single headline number of a result (route travel time)."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page titles."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section headings; panel heads use title-sm."
+      },
+      "title-sm": {
+        "displayName": "Title Small",
+        "purpose": "Panel and inspector headings (13–14px)."
+      },
+      "metric": {
+        "displayName": "Metric",
+        "purpose": "Fact-strip values with 12px units."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Base copy; descriptions capped at 70ch."
+      },
+      "body-sm": {
+        "displayName": "Body Small",
+        "purpose": "Tables, rows, breadcrumbs, inputs, buttons."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Field labels, table headers, badges, legends. Sentence case."
+      },
+      "data": {
+        "displayName": "Data (Mono)",
+        "purpose": "Hashes, coordinates, clock, timestamps, strip stats, kbd, commands only (11–13px)."
+      }
+    },
+    "fonts": [
+      {
+        "family": "Geist",
+        "src": "viewer/fonts/Geist-Variable.woff2",
+        "weights": "100 900",
+        "license": "OFL"
+      },
+      {
+        "family": "Geist Mono",
+        "src": "viewer/fonts/GeistMono-Variable.woff2",
+        "weights": "100 900",
+        "license": "OFL"
+      }
+    ],
+    "shadows": [
+      {
+        "name": "shadow-sm",
+        "value": "0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 1px rgba(0, 0, 0, 0.02)",
+        "dark": "0 1px 2px rgba(0, 0, 0, 0.5)",
+        "purpose": "Hairline lift: panels, map tools, map hint, active segment."
+      },
+      {
+        "name": "shadow-md",
+        "value": "0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px -8px rgba(0, 0, 0, 0.12)",
+        "dark": "0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 32px -10px rgba(0, 0, 0, 0.7)",
+        "purpose": "Overlays only: toast, off-canvas sidebar."
+      },
+      {
+        "name": "focus-halo",
+        "value": "0 0 0 3px color-mix(in srgb, var(--focus) 20%, transparent)",
+        "purpose": "Focused inputs (20%), armed endpoint (16%)."
+      },
+      {
+        "name": "focus-ring",
+        "value": "outline: 2px solid var(--focus); outline-offset: 2px",
+        "purpose": "Global :focus-visible."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "The single ease-out curve for every transition."
+      },
+      {
+        "name": "duration-state",
+        "value": "150ms",
+        "purpose": "Hover, press, segment and input state changes (table rows 120ms)."
+      },
+      {
+        "name": "duration-overlay",
+        "value": "200ms",
+        "purpose": "Toast rise (8px) and scrim fade; mobile drawer slides at 220ms."
+      },
+      {
+        "name": "fade-in",
+        "value": "240ms, translateY(4px) to none, opacity untouched",
+        "purpose": "Entrance by position only, from an already-visible default."
+      },
+      {
+        "name": "bar-width",
+        "value": "400ms",
+        "purpose": "Data bar width changes."
+      },
+      {
+        "name": "search-sweep",
+        "value": "1500ms, requestAnimationFrame, settle order",
+        "purpose": "The one authored moment: four small multiples reveal settled nodes together."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "CSS animation/transition durations collapse to 1ms; the search sweep jumps to its final state",
+        "purpose": "prefers-reduced-motion: reduce."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact-desktop",
+        "value": "1100px",
+        "purpose": "Grids stack; inspector narrows to 320px."
+      },
+      {
+        "name": "mobile",
+        "value": "860px",
+        "purpose": "Off-canvas sidebar; workspace stacks; strip 2x2."
+      }
+    ],
+    "layout": {
+      "sidebar": "236px",
+      "topbar": "52px",
+      "inspector": "372px (320px below 1100px)",
+      "pageMax": "1240px",
+      "pagePadding": "32px 24px 64px",
+      "searchStrip": "168px (240px, 2x2 on mobile)"
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Inverted solid button for the single primary action in a context (Run route, Simulate).",
+      "html": "<button class=\"ds-btn ds-btn-primary\" type=\"button\"><svg viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 3.5v9l7-4.5z\" fill=\"currentColor\" stroke=\"none\"/></svg>Run simulation</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:32px;padding:0 12px;border-radius:var(--radius-sm,6px);border:1px solid var(--border-strong,#d6d6d6);background:var(--surface,#fff);color:var(--text,#171717);font:500 13px/1 var(--font,Geist,system-ui,sans-serif);cursor:pointer;white-space:nowrap;transition:background-color 150ms cubic-bezier(0.16,1,0.3,1),border-color 150ms cubic-bezier(0.16,1,0.3,1),opacity 150ms cubic-bezier(0.16,1,0.3,1),transform 150ms cubic-bezier(0.16,1,0.3,1)}.ds-btn svg{width:15px;height:15px}.ds-btn:active{transform:translateY(0.5px)}.ds-btn:focus-visible{outline:2px solid var(--focus,#0a6cff);outline-offset:2px}.ds-btn-primary{background:var(--invert-bg,#171717);color:var(--invert-text,#fafafa);border-color:var(--invert-bg,#171717)}.ds-btn-primary:hover{opacity:0.88}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Default bordered button for secondary actions (Replay search, Random pair).",
+      "html": "<button class=\"ds-btn2\" type=\"button\"><svg viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 8a5 5 0 1 0 1.6-3.7\"/><path d=\"M3 2.5v2.8h2.8\"/></svg>Replay search</button>",
+      "css": ".ds-btn2{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 12px;border-radius:var(--radius-sm,6px);border:1px solid var(--border-strong,#d6d6d6);background:var(--surface,#fff);color:var(--text,#171717);font:500 13px/1 var(--font,Geist,system-ui,sans-serif);cursor:pointer;transition:background-color 150ms cubic-bezier(0.16,1,0.3,1),border-color 150ms cubic-bezier(0.16,1,0.3,1)}.ds-btn2 svg{width:15px;height:15px}.ds-btn2:hover{background:var(--surface-hover,#f7f7f7);border-color:var(--text-3,#707070)}.ds-btn2:active{transform:translateY(0.5px)}.ds-btn2:focus-visible{outline:2px solid var(--focus,#0a6cff);outline-offset:2px}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Borderless button for icon actions and low-emphasis controls.",
+      "html": "<button class=\"ds-btn-ghost\" type=\"button\" aria-label=\"Fit map\"><svg viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10\"/></svg></button>",
+      "css": ".ds-btn-ghost{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border-radius:var(--radius-sm,6px);border:1px solid transparent;background:transparent;color:var(--text-2,#5c5c5c);cursor:pointer;transition:background-color 150ms cubic-bezier(0.16,1,0.3,1),color 150ms cubic-bezier(0.16,1,0.3,1)}.ds-btn-ghost svg{width:15px;height:15px}.ds-btn-ghost:hover{background:var(--surface-hover,#f7f7f7);color:var(--text,#171717)}.ds-btn-ghost:focus-visible{outline:2px solid var(--focus,#0a6cff);outline-offset:2px}"
+    },
+    {
+      "name": "Segmented Control",
+      "kind": "chip",
+      "refersTo": "segmented",
+      "description": "Sunken track with a raised active option; used for traffic level, policy, mode and theme.",
+      "html": "<div class=\"ds-seg\" role=\"group\" aria-label=\"Traffic\"><button type=\"button\" aria-pressed=\"true\">Free</button><button type=\"button\" aria-pressed=\"false\">Moderate</button><button type=\"button\" aria-pressed=\"false\">Heavy</button></div>",
+      "css": ".ds-seg{display:inline-flex;padding:2px;gap:2px;border-radius:var(--radius-sm,6px);background:var(--bg-sunken,#f2f2f2);border:1px solid var(--border,#e8e8e8)}.ds-seg button{height:26px;padding:0 10px;border:0;border-radius:4px;background:transparent;color:var(--text-2,#5c5c5c);font:500 12px/1 var(--font,Geist,system-ui,sans-serif);cursor:pointer;transition:background-color 150ms cubic-bezier(0.16,1,0.3,1),color 150ms cubic-bezier(0.16,1,0.3,1),box-shadow 150ms cubic-bezier(0.16,1,0.3,1)}.ds-seg button:hover{color:var(--text,#171717)}.ds-seg button[aria-pressed=\"true\"]{background:var(--surface,#fff);color:var(--text,#171717);box-shadow:var(--shadow-sm,0 1px 2px rgba(0,0,0,.04),0 1px 1px rgba(0,0,0,.02))}.ds-seg button:focus-visible{outline:2px solid var(--focus,#0a6cff);outline-offset:2px}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Labelled 32px field with tabular figures and a blue focus halo.",
+      "html": "<label class=\"ds-field\"><span>Couriers</span><input class=\"ds-input\" value=\"40\" inputmode=\"numeric\"></label>",
+      "css": ".ds-field{display:flex;flex-direction:column;gap:6px;width:160px}.ds-field span{font:500 12px/1.4 var(--font,Geist,system-ui,sans-serif);color:var(--text-2,#5c5c5c)}.ds-input{height:32px;width:100%;padding:0 10px;border-radius:var(--radius-sm,6px);border:1px solid var(--border-strong,#d6d6d6);background:var(--surface,#fff);color:var(--text,#171717);font:400 13px/1 var(--font,Geist,system-ui,sans-serif);font-variant-numeric:tabular-nums;transition:border-color 150ms cubic-bezier(0.16,1,0.3,1),box-shadow 150ms cubic-bezier(0.16,1,0.3,1)}.ds-input:hover{border-color:var(--text-3,#707070)}.ds-input:focus{outline:none;border-color:var(--focus,#0a6cff);box-shadow:0 0 0 3px color-mix(in srgb,var(--focus,#0a6cff) 20%,transparent)}"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": "badge-ok",
+      "description": "Pill badge; status variants pair a soft fill with an icon and words.",
+      "html": "<span class=\"ds-badge ds-badge-ok\"><svg viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 8.5l3 3 7-7\"/></svg>4 of 4 agree on cost</span> <span class=\"ds-badge\">Tricity · 142k nodes</span>",
+      "css": ".ds-badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font:500 12px/1 var(--font,Geist,system-ui,sans-serif);white-space:nowrap;background:var(--bg-sunken,#f2f2f2);color:var(--text-2,#5c5c5c);border:1px solid var(--border,#e8e8e8)}.ds-badge svg{width:12px;height:12px}.ds-badge-ok{background:var(--ok-soft,rgba(21,128,61,.1));color:var(--ok,#15803d);border-color:transparent}"
+    },
+    {
+      "name": "Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Hairline-bordered 12px surface with a divided head and a fact strip.",
+      "html": "<section class=\"ds-panel\"><header class=\"ds-panel-head\"><h2>Road network</h2><span>Drag to pan · scroll to zoom</span></header><dl class=\"ds-facts\"><div><dt>Nodes</dt><dd>142,318</dd></div><div><dt>Edges</dt><dd>351,904</dd></div><div><dt>Import</dt><dd>2.4<small>s</small></dd></div></dl></section>",
+      "css": ".ds-panel{background:var(--surface,#fff);border:1px solid var(--border,#e8e8e8);border-radius:var(--radius-lg,12px);box-shadow:var(--shadow-sm,0 1px 2px rgba(0,0,0,.04),0 1px 1px rgba(0,0,0,.02));font-family:var(--font,Geist,system-ui,sans-serif);color:var(--text,#171717)}.ds-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border,#e8e8e8)}.ds-panel-head h2{margin:0;font-size:14px;font-weight:600;letter-spacing:-0.005em}.ds-panel-head span{font-size:12px;color:var(--text-2,#5c5c5c)}.ds-facts{display:grid;grid-template-columns:repeat(3,1fr);margin:0}.ds-facts div{padding:14px 16px;border-right:1px solid var(--border,#e8e8e8)}.ds-facts div:last-child{border-right:none}.ds-facts dt{font-size:12px;color:var(--text-2,#5c5c5c)}.ds-facts dd{margin:4px 0 0;font-size:18px;font-weight:550;letter-spacing:-0.02em;font-variant-numeric:tabular-nums}.ds-facts small{font-size:12px;font-weight:450;color:var(--text-2,#5c5c5c);margin-left:2px}"
+    },
+    {
+      "name": "Sidebar Navigation",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "32px nav rows with line icons; current page takes the active fill.",
+      "html": "<nav class=\"ds-nav\"><a href=\"#\" class=\"ds-nav-item\"><svg viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"2.5\" y=\"2.5\" width=\"4.5\" height=\"4.5\" rx=\"1\"/><rect x=\"9\" y=\"2.5\" width=\"4.5\" height=\"4.5\" rx=\"1\"/><rect x=\"2.5\" y=\"9\" width=\"4.5\" height=\"4.5\" rx=\"1\"/><rect x=\"9\" y=\"9\" width=\"4.5\" height=\"4.5\" rx=\"1\"/></svg>Overview</a><a href=\"#\" class=\"ds-nav-item\" aria-current=\"page\"><svg viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"3.5\" cy=\"12.5\" r=\"1.5\"/><circle cx=\"12.5\" cy=\"3.5\" r=\"1.5\"/><path d=\"M5 12.5h3.5a2 2 0 0 0 0-4h-1a2 2 0 0 1 0-4H11\"/></svg>Routing lab</a></nav>",
+      "css": ".ds-nav{display:flex;flex-direction:column;gap:1px;width:216px;font-family:var(--font,Geist,system-ui,sans-serif);font-size:14px}.ds-nav-item{display:flex;align-items:center;gap:10px;height:32px;padding:0 10px;border-radius:var(--radius-sm,6px);color:var(--text-2,#5c5c5c);text-decoration:none;font-weight:450;transition:background-color 150ms cubic-bezier(0.16,1,0.3,1),color 150ms cubic-bezier(0.16,1,0.3,1)}.ds-nav-item svg{width:16px;height:16px;flex:none}.ds-nav-item:hover{background:var(--surface-hover,#f7f7f7);color:var(--text,#171717)}.ds-nav-item[aria-current=\"page\"]{background:var(--surface-active,#f0f0f0);color:var(--text,#171717);font-weight:550}.ds-nav-item:focus-visible{outline:2px solid var(--focus,#0a6cff);outline-offset:2px}"
+    },
+    {
+      "name": "Search Strip",
+      "kind": "custom",
+      "refersTo": "search-strip",
+      "description": "Signature: four small-multiple search-space maps, hairline-gapped, each labelled with its algorithm hue and a mono stat; swept together over 1.5s in settle order.",
+      "html": "<div class=\"ds-strip\"><div class=\"ds-mini\" aria-pressed=\"true\"><div class=\"ds-mini-l\"><span class=\"ds-algo\"><i style=\"background:var(--s-dijkstra,#2f6feb)\"></i>Dijkstra</span><span class=\"ds-stat\">61.2k · 18.4 ms</span></div></div><div class=\"ds-mini\"><div class=\"ds-mini-l\"><span class=\"ds-algo\"><i style=\"background:var(--s-bidirectional,#0e9384)\"></i>Bidirectional</span><span class=\"ds-stat\">29.8k · 9.1 ms</span></div></div><div class=\"ds-mini\"><div class=\"ds-mini-l\"><span class=\"ds-algo\"><i style=\"background:var(--s-astar,#7c4dde)\"></i>A*</span><span class=\"ds-stat\">14.0k · 5.6 ms</span></div></div><div class=\"ds-mini\"><div class=\"ds-mini-l\"><span class=\"ds-algo\"><i style=\"background:var(--s-cch,#d6336c)\"></i>CCH</span><span class=\"ds-stat\">612 · 0.21 ms</span></div></div></div>",
+      "css": ".ds-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--border,#e8e8e8);border-top:1px solid var(--border,#e8e8e8);height:168px;font-family:var(--font,Geist,system-ui,sans-serif)}.ds-mini{position:relative;background:var(--map-bg,#f3f3f2);cursor:pointer}.ds-mini[aria-pressed=\"true\"]::after{content:\"\";position:absolute;inset:0;box-shadow:inset 0 0 0 2px var(--text,#171717)}.ds-mini-l{position:absolute;left:8px;top:8px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;font-size:12px}.ds-algo{display:inline-flex;align-items:center;gap:8px;font-weight:500;padding:3px 7px;border-radius:5px;background:color-mix(in srgb,var(--surface,#fff) 90%,transparent);border:1px solid var(--border,#e8e8e8);color:var(--text,#171717)}.ds-algo i{width:8px;height:8px;border-radius:2px}.ds-stat{padding:2px 6px;border-radius:5px;background:color-mix(in srgb,var(--surface,#fff) 90%,transparent);border:1px solid var(--border,#e8e8e8);color:var(--text-2,#5c5c5c);font:11px var(--mono,'Geist Mono',ui-monospace,monospace);font-variant-numeric:tabular-nums}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Instrument Console",
+    "overview": "DispatchLab is a developer-platform console, played straight in the register of Vercel, Cloudflare and Linear dashboards. The road map is a precise instrument set inside a calm product shell. It is not a logistics control room: the shell is neutral grey, structured by hairline borders and quiet radii, and colour is spent only where it carries meaning. That means the route, the four algorithms, the dispatch policies, courier states, and pass, warn or fail status.\n\nDensity is operational. Body text is 14px, controls are 32px tall, and every number is set in tabular figures. Each view is either a scrolling page of panels (max 1240px) or a full-bleed workspace where the map fills the stage and a fixed inspector holds the controls and results. Light and dark themes are complete token sets. The theme is resolved from `localStorage` or the system preference before first paint, so the page never flashes the wrong theme.\n\nMotion stays out of the way. State changes take 150 to 250ms with a single ease-out curve. The one authored moment is the search sweep, when four small-multiple maps reveal each algorithm's settled nodes in settle order.",
+    "keyCharacteristics": [
+      "Neutral greys, hairline borders, one orange accent, and complete light and dark themes.",
+      "Geist Sans for the interface and Geist Mono for data only, both self-hosted.",
+      "Inverted solid primary buttons. Segmented controls instead of tabs or toggles.",
+      "A workspace layout: map stage plus a 372px inspector.",
+      "The four-map search strip as the signature element.",
+      "Colour as meaning, never decoration. Status is always paired with an icon or a word."
+    ],
+    "rules": [
+      {
+        "name": "The Reserved Series Rule",
+        "body": "The four algorithm hues belong to the algorithms and nothing else. Policies, courier states, status and chrome never borrow them, and a new algorithm view reuses the same four hues.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Orange Rule",
+        "body": "Orange is the only brand hue. It marks the route and the things a route connects (destination, restaurant), plus the Greedy ETA policy. Never use it for decoration, section fills or headings.",
+        "section": "colors"
+      },
+      {
+        "name": "The Paired Status Rule",
+        "body": "Status colour never stands alone. Every ok, warn or err fill carries an icon or a word, such as \"4 of 4 agree on cost\" with a check.",
+        "section": "colors"
+      },
+      {
+        "name": "The Mono Is Data Rule",
+        "body": "Geist Mono sets machine output only: hashes, coordinates, timestamps, commands and per-algorithm stats. Interface copy, headings and labels are always Geist Sans.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Figures Rule",
+        "body": "Every number that can change or be compared uses tabular figures. That covers table cells, facts, inputs, bars and the big result number.",
+        "section": "typography"
+      },
+      {
+        "name": "The Border First Rule",
+        "body": "Depth is drawn with 1px borders and tone steps. If an element needs a shadow to be told apart from its neighbour, fix its border or its tone instead.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Visible Default Rule",
+        "body": "Entrances never start from opacity 0. Content is visible at rest and only settles into position.",
+        "section": "components"
+      },
+      {
+        "name": "The One Sweep Rule",
+        "body": "The search sweep is the only authored animation. Every other motion is a 150–250ms ease-out state change.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "Do make the primary action an inverted solid button (ink on light, near-white on dark), with one per context.",
+      "Do use the segmented control (sunken track, raised active segment) for every choice among two to five modes.",
+      "Do keep the four algorithm hues for the algorithms only, and colour policies grey (Nearest) and orange (Greedy ETA).",
+      "Do set hashes, coordinates, timestamps and commands in Geist Mono, and every comparable number in tabular figures.",
+      "Do build map views as a workspace: the map stage plus a 372px inspector, with floating surface chips over the canvas.",
+      "Do draw structure with 1px hairlines and tone steps, using 6px radii for controls and 12px for panels.",
+      "Do define every new colour for both themes on `:root` and `[data-theme=\"dark\"]`.",
+      "Do keep state transitions to 150–250ms on the single ease-out curve."
+    ],
+    "donts": [
+      "Don't build a logistics \"control room\": no dark neon maps, glowing routes or gauge cards.",
+      "Don't reuse an algorithm series hue for a policy, a courier state, a status or chrome.",
+      "Don't use orange for decoration, headings or section fills.",
+      "Don't use Geist Mono for interface copy, headings or labels.",
+      "Don't fade entrances in from opacity 0, and don't add authored animation beyond the search sweep.",
+      "Don't rely on colour alone for status. Pair it with an icon or a word.",
+      "Don't load fonts, tiles or scripts from external hosts. Everything is self-hosted and must open from `file://`."
+    ]
+  }
+}
