@@ -43,6 +43,23 @@ Last updated: 2026-10-19. Re-read this file, then `docs/PRD.md`, before resuming
   preprocessing, 6.4× fill-in, 29 MiB, median query about 12× faster than Dijkstra (PERFORMANCE.md).
   Because CCH succeeded, the replacement graph-layout / priority-queue study was not needed.
 
+## Console (frontend), branch `feat/frontend-console`
+
+* `dispatchlab serve <graph>`: loopback-only HTTP/1.1 server (POSIX sockets, thread per connection)
+  serving `viewer/` plus a JSON API computed live by the engine (route with settle-order traces for
+  all four algorithms, simulate, compare, agreement, determinism, selftest, results).
+* Console views: Overview, Routing lab (signature: four search spaces animating in settle order as
+  small multiples), Simulation (live runs with verified replay), Policies (head-to-head on one shared
+  scenario + experiment explorer), Benchmarks, Correctness (live checks). Vercel/Cloudflare/Linear
+  register (user-pinned), self-hosted Geist, light/dark, responsive to 390px.
+* Offline `file://` mode keeps working (replay + results bundles from `export-viewer`).
+* verify.sh: new CONSOLE check starts the server, checks route agreement against the CLI, checks that
+  a live simulation reproduces the CLI's state hash, checks selftest and path-traversal rejection.
+  The AC-13 network check now scans every viewer file for external hosts and forbids network APIs
+  other than `fetch` in `api.js` with relative `/api/` paths.
+* Impeccable finish review: ship after two fix rounds. DESIGN.md + `.impeccable/design.json` record
+  the system.
+
 ## In progress
 
 * Nothing in progress. All mandatory AC and the optional AC-17 (CCH) pass in `verify.sh` (exit 0,
