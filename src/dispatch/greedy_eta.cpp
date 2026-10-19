@@ -12,12 +12,12 @@ GreedyEtaPolicy::GreedyEtaPolicy(const Graph& g, EtaStrategy strategy, const CCH
       strategy_(strategy),
       to_restaurant_(make_reverse_dijkstra(g)),
       restaurant_to_customer_(g),
-      ws_(strategy == EtaStrategy::Pruned ? g.num_nodes() : 0) {
-    if (strategy_ == EtaStrategy::Pruned) {
+      ws_(strategy == EtaStrategy::Pruned || strategy == EtaStrategy::Adaptive ? g.num_nodes() : 0) {
+    if (strategy_ == EtaStrategy::Pruned || strategy_ == EtaStrategy::Adaptive) {
         node_stamp_.assign(g.num_nodes(), 0);
         node_first_.assign(g.num_nodes(), 0);
     }
-    if (strategy_ == EtaStrategy::Cch || strategy_ == EtaStrategy::Bounded) {
+    if (strategy_ == EtaStrategy::Cch || strategy_ == EtaStrategy::Bounded || strategy_ == EtaStrategy::Adaptive) {
         cch_ = cch ? std::make_unique<CCH>(*cch) : std::make_unique<CCH>(g);  // a copy shares the hierarchy
     }
 }
@@ -28,6 +28,7 @@ std::string_view GreedyEtaPolicy::name() const {
         case EtaStrategy::Pruned: return "greedy_eta_pruned";
         case EtaStrategy::Cch: return "greedy_eta_cch";
         case EtaStrategy::Bounded: return "greedy_eta_bounded";
+        case EtaStrategy::Adaptive: return "greedy_eta_adaptive";
     }
     return "greedy_eta";
 }
@@ -188,6 +189,13 @@ std::uint32_t GreedyEtaPolicy::choose(const DispatchRequest& req, const std::vec
         case EtaStrategy::Pruned: choose_pruned(req, available, b); break;
         case EtaStrategy::Cch: choose_cch(req, available, b); break;
         case EtaStrategy::Bounded: choose_bounded(req, available, b); break;
+        case EtaStrategy::Adaptive:
+            if (static_cast<double>(g_.num_nodes()) / static_cast<double>(available.size()) < kAdaptiveNodesPerCourier) {
+                choose_pruned(req, available, b);
+            } else {
+                choose_bounded(req, available, b);
+            }
+            break;
     }
     if (!b.has) throw std::runtime_error("GreedyEtaPolicy: no courier can reach restaurant");
     last_.courier = available[b.idx].id;

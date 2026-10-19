@@ -35,6 +35,7 @@ std::unique_ptr<DispatchPolicy> make_policy(std::string_view name, const Graph& 
     if (name == "greedy_eta_pruned") return std::make_unique<GreedyEtaPolicy>(g, EtaStrategy::Pruned);
     if (name == "greedy_eta_cch") return std::make_unique<GreedyEtaPolicy>(g, EtaStrategy::Cch);
     if (name == "greedy_eta_bounded") return std::make_unique<GreedyEtaPolicy>(g, EtaStrategy::Bounded);
+    if (name == "greedy_eta_adaptive") return std::make_unique<GreedyEtaPolicy>(g, EtaStrategy::Adaptive);
     throw std::invalid_argument("unknown dispatch policy: " + std::string(name));
 }
 

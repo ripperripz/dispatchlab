@@ -93,7 +93,8 @@ TEST_CASE("dispatch: greedy eta only considers available couriers") {
 }
 
 namespace {
-const char* kEtaVariants[] = {"greedy_eta", "greedy_eta_pruned", "greedy_eta_cch", "greedy_eta_bounded"};
+const char* kEtaVariants[] = {"greedy_eta", "greedy_eta_pruned", "greedy_eta_cch", "greedy_eta_bounded",
+                              "greedy_eta_adaptive"};
 }
 
 TEST_CASE("dispatch: greedy eta strategies make identical decisions on random requests") {
@@ -101,7 +102,7 @@ TEST_CASE("dispatch: greedy eta strategies make identical decisions on random re
         Graph g = seed % 2 ? fixtures::grid(16, 16) : fixtures::random_geometric(400, 3, seed);
         CCH cch(g);
         GreedyEtaPolicy full(g, EtaStrategy::Full), pruned(g, EtaStrategy::Pruned), viacch(g, EtaStrategy::Cch, &cch),
-            bounded(g, EtaStrategy::Bounded, &cch);
+            bounded(g, EtaStrategy::Bounded, &cch), adaptive(g, EtaStrategy::Adaptive, &cch);
         Rng rng(seed);
         for (int i = 0; i < 300; ++i) {
             const auto r = static_cast<NodeId>(rng.below(g.num_nodes()));
@@ -118,11 +119,11 @@ TEST_CASE("dispatch: greedy eta strategies make identical decisions on random re
                 av.push_back({static_cast<std::uint32_t>(j * 3 + 1), loc});
             }
             DispatchRequest req{0, r, d, now, ready};
-            std::uint32_t chosen[4];
-            SimTime eta[4];
-            bool ok[4];
-            GreedyEtaPolicy* pols[4] = {&full, &pruned, &viacch, &bounded};
-            for (int p = 0; p < 4; ++p) {
+            std::uint32_t chosen[5];
+            SimTime eta[5];
+            bool ok[5];
+            GreedyEtaPolicy* pols[5] = {&full, &pruned, &viacch, &bounded, &adaptive};
+            for (int p = 0; p < 5; ++p) {
                 try {
                     chosen[p] = pols[p]->choose(req, av);
                     eta[p] = pols[p]->last_decision().eta;
@@ -131,7 +132,7 @@ TEST_CASE("dispatch: greedy eta strategies make identical decisions on random re
                     ok[p] = false;  // no courier can reach the restaurant
                 }
             }
-            for (int p = 1; p < 4; ++p) {
+            for (int p = 1; p < 5; ++p) {
                 REQUIRE(ok[p] == ok[0]);
                 if (ok[0]) {
                     REQUIRE(chosen[p] == chosen[0]);

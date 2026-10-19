@@ -37,6 +37,7 @@ EtaStrategy parse_strategy(const std::string& s) {
     if (s == "pruned") return EtaStrategy::Pruned;
     if (s == "cch") return EtaStrategy::Cch;
     if (s == "bounded") return EtaStrategy::Bounded;
+    if (s == "adaptive") return EtaStrategy::Adaptive;
     throw std::invalid_argument("unknown strategy " + s);
 }
 
@@ -67,7 +68,7 @@ int main(int argc, char** argv) {
     Graph base = load_graph(args.graph);
     const auto t_cch = bench::Clock::now();
     bool need_cch = false;
-    for (const auto& s : strategy_names) need_cch |= s == "cch" || s == "bounded";
+    for (const auto& s : strategy_names) need_cch |= s == "cch" || s == "bounded" || s == "adaptive";
     std::unique_ptr<CCH> cch_free = need_cch ? std::make_unique<CCH>(base) : nullptr;
     const double cch_ms = bench::us_since(t_cch) / 1000.0;
     const std::uint32_t n = base.num_nodes();

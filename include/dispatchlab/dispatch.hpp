@@ -89,7 +89,11 @@ private:
 //             forward upward search per courier (bucket-style one-to-many)
 //   Bounded - couriers ordered by an admissible geodesic lower bound; exact
 //             CCH distances computed lazily until the bound proves the rest lose
-enum class EtaStrategy { Full, Pruned, Cch, Bounded };
+//   Adaptive- Pruned when available couriers are dense (expected search radius
+//             n / k nodes below kAdaptiveNodesPerCourier), Bounded otherwise.
+//             Exact either way; the rule only affects speed.
+enum class EtaStrategy { Full, Pruned, Cch, Bounded, Adaptive };
+inline constexpr double kAdaptiveNodesPerCourier = 20000.0;  // tuned on Tricity (docs/RESEARCH.md)
 
 class GreedyEtaPolicy final : public DispatchPolicy {
 public:
