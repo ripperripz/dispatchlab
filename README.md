@@ -110,6 +110,29 @@ traffic scenarios and five paired seeds. Results land in `policy_comparison.csv`
 reproducibility metadata (dataset, seeds, compiler, hardware, parameters), and in
 `policy_summary.md` (paired differences and win counts).
 
+## Performance study, scale, research
+
+* **Performance engineering** (PERFORMANCE.md, phase 2): chord-bound A* (1.45× lower median latency
+  than haversine A*), a priority-queue study (radix heap 1.39–1.51× faster than a binary heap; a
+  4-ary heap gives no gain), a graph-layout study with hardware counters (identical instruction
+  counts across six node orders; IPC 0.51 for random vs 1.44 for DFS order at 17M nodes), and a
+  worker-pool server (4× the throughput and 6.4× lower p99 than thread-per-connection).
+* **Scale:** the full Geofabrik northern-zone extract (17.2M nodes, 35.4M edges) imports in 10 s
+  and passes the 1,000-query agreement suite.
+* **Research** ([docs/RESEARCH.md](docs/RESEARCH.md)): decision-aware Greedy ETA. Exact strategies
+  (`greedy_eta_pruned`, `greedy_eta_bounded`, `greedy_eta_adaptive`) make provably identical
+  decisions with up to 16× less decision time; identical simulation hashes are checked by verify.sh.
+
+```bash
+./build/benchmark_layout data/processed/tricity.graph --queries 1000 --out benchmarks/results/layout_tricity.json
+./build/benchmark_server data/processed/tricity.graph --seconds 4 --out benchmarks/results/server.json
+./build/benchmark_eta data/processed/tricity.graph --samples 200 --seeds 3 --out benchmarks/results/eta_tricity.json
+./build/dispatchlab import data/raw/northern-zone-261017.osm.pbf data/processed/northern.graph
+```
+
+The last command needs the full extract (`./scripts/fetch_data.sh` downloads it; 224 MB) and about
+4 GB of RAM. Every Greedy ETA strategy is also a `--policy` value for `simulate` and `experiment`.
+
 ## Console (frontend)
 
 `dispatchlab serve <graph> [--port 8080]` runs a small HTTP server built into the binary (POSIX

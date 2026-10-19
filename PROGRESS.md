@@ -60,6 +60,21 @@ Last updated: 2026-10-19. Re-read this file, then `docs/PRD.md`, before resuming
 * Impeccable finish review: ship after two fix rounds. DESIGN.md + `.impeccable/design.json` record
   the system.
 
+## Phase 2: scale, performance, research (branch `feat/scale-perf-research`)
+
+* A* chord heuristic (admissible, one sqrt on shared float unit vectors).
+* Priority-queue study: Dijkstra templated on the heap; 4-ary, radix and std::priority_queue
+  variants, all tested against references; radix heap 1.39× (Tricity) / 1.51× (17M nodes) faster.
+* Graph-layout study (`relabel`, six orders) with per-layout hardware counters at 17M nodes:
+  identical instructions, IPC 0.51 (random) to 1.44 (DFS).
+* Server: worker pool with bounded queue (503 shedding); CCH split into a shared immutable hierarchy
+  plus per-thread workspaces (lock-free); `/api/distance`; `benchmark_server`: about 20k vs 5k req/s.
+* Scale: northern-zone extract imported (17,176,411 nodes, 35,415,385 edges, 9.8 s, 4.1 GB peak);
+  1,000/1,000 agreement queries pass (Dijkstra, Bidirectional, A*).
+* Research (docs/RESEARCH.md): exact decision-aware Greedy ETA strategies (pruned, cch, bounded,
+  adaptive); identical choices and hashes everywhere; adaptive 7–16× lower decision time. The
+  bucket-style CCH one-to-many is a measured loss at many couriers. verify.sh has a RESEARCH check.
+
 ## In progress
 
 * Nothing in progress. All mandatory AC and the optional AC-17 (CCH) pass in `verify.sh` (exit 0,

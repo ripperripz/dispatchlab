@@ -335,3 +335,128 @@ across the board. The ratios between algorithms stayed stable, so read the ratio
   isolation does not reliably improve throughput, as PRD §7 warns.
 * Average and p95 delivery time count delivered orders only. When undelivered counts differ
   (peak/heavy cells), compare those columns with that bias in mind.
+
+## Phase 2: performance engineering study (hand-written; data in `benchmarks/results/`)
+
+Same machine (Apple M4, AppleClang 21, `-O3`). Every latency comparison runs the same seeded query
+pairs, interleaved per pair, and the benchmark aborts if any variant returns a different cost.
+Files: `layout_tricity.json`, `layout_northern.json`, `layout_counters_northern.json`,
+`server.json`. Commands are in the README's "Performance study" section.
+
+### A* heuristic cost: chord instead of haversine
+
+The haversine heuristic evaluates sin, cos, asin and sqrt on every heap push. The replacement uses
+the straight-line chord between precomputed float unit vectors: one sqrt, with 3 m of slack for float
+rounding. A chord is never longer than the great-circle arc, so the bound stays admissible; unit
+tests check h ≤ true distance and h(u→v) ≤ w(u,v) on every edge. Both variants appear in the routing
+table above ("A*" is chord, "A* (haversine)" the old heuristic). In the first measurement
+(2,000 Tricity queries), median latency dropped 2.38 → 1.64 ms and p99 11.1 → 7.8 ms, while nodes
+settled grew by 0.07% because the bound is slightly looser. A*'s p99 went from worse than plain
+Dijkstra's to slightly better.
+
+### Priority queues (identical Dijkstra code, heap as a template parameter)
+
+| Heap | Tricity median (1,000 queries) | 17.2M-node median (30 queries) |
+|---|---:|---:|
+| binary heap (baseline) | 3.68 ms | 524 ms |
+| 4-ary heap | 3.70 ms | 545 ms |
+| radix heap (monotone integer keys) | **2.65 ms** | **348 ms** |
+| std::priority_queue | 3.68 ms | 524 ms |
+
+- The radix heap is **1.39× faster on Tricity and 1.51× faster at 17M nodes**. Its pushes are
+  appends into one of 65 buckets, its pops amortize redistribution, and it does no comparison
+  sifting. It requires monotone keys, which Dijkstra guarantees but A* (whose f-values can
+  decrease) does not, so it is used only for Dijkstra.
+- The 4-ary heap brought **no gain** (slightly slower in both cases). The heap is small relative to
+  the search, so shallower trees don't pay for the wider comparisons.
+- Our binary heap and std::priority_queue are indistinguishable.
+
+### Graph layout (same graph, nodes renumbered; same queries mapped through the permutation)
+
+| Layout (17.2M nodes) | edges within 8 ids | Dijkstra median | Bidirectional | A* |
+|---|---:|---:|---:|---:|
+| OSM id order (baseline) | 69.5% | 525 ms | 407 ms | 224 ms |
+| random (control) | 0.0% | 1,353 ms | 1,126 ms | 646 ms |
+| BFS from centre | 1.8% | 592 ms | 548 ms | 280 ms |
+| DFS from centre | **89.9%** | **468 ms** | **374 ms** | **201 ms** |
+| Hilbert curve | 83.7% | 477 ms | 377 ms | 206 ms |
+| nested dissection | 61.8% | 491 ms | 386 ms | 209 ms |
+
+Hardware counters for the same runs (`/usr/bin/time -l`, macOS). Each layout was run with 30
+measured queries and with none, and the difference attributes the counters to the queries alone:
+
+| Layout | instructions | cycles | IPC |
+|---|---:|---:|---:|
+| DFS | 227.9 G | 158.0 G | **1.44** |
+| Hilbert | 228.3 G | 162.3 G | 1.41 |
+| nested dissection | 227.9 G | 166.4 G | 1.37 |
+| OSM id (baseline) | 230.6 G | 183.7 G | 1.26 |
+| BFS | 228.8 G | 224.5 G | 1.02 |
+| random | 229.6 G | 448.6 G | **0.51** |
+
+- **The work is identical; only the waiting changes.** Instruction counts agree within 1.2% across
+  layouts, while cycles vary by 2.8×. The whole effect is memory stalls: when consecutive accesses
+  to the label arrays (`dist`, `parent`, `stamp`) and to the CSR land in different cache lines,
+  the core stalls.
+- **The OSM-id order is already decent**: OSM ids correlate with mapping sessions and therefore
+  with space. DFS and Hilbert orders still beat it by 11–12% in Dijkstra latency (IPC 1.26 → 1.44).
+- **BFS order is worse than the OSM order.** Its layers are spatial rings, so graph neighbours sit
+  about 4,000 ids apart (median edge gap 4,041).
+- **On Tricity (142k nodes) the same effects are much smaller**: about 6% for DFS/Hilbert and 12%
+  for random. The 142k-node working set largely fits in the on-chip caches; at 17M nodes it does
+  not, which is where layout starts to matter.
+- **Not done:** adopting DFS order as the import default. It is a one-line change in the importer
+  (relabel after SCC) and would need re-running the agreement suite; it is listed as a follow-up
+  rather than silently applied.
+
+### Console server concurrency (worker pool vs thread per connection)
+
+Load generator: in-process server and client threads on loopback, a new TCP connection per request,
+`/api/distance?algo=cch` (one CCH query, about 0.3 ms), 4 s per cell. Clients and server share the
+10 cores, so these are whole-system numbers:
+
+| Mode | clients | req/s | p50 | p95 | p99 |
+|---|---:|---:|---:|---:|---:|
+| worker pool (10) | 1 | 2,835 | 368 µs | 459 µs | 487 µs |
+| worker pool (10) | 16 | 20,312 | 748 µs | 1.13 ms | 1.39 ms |
+| worker pool (10) | 64 | **19,952** | 3.10 ms | 3.71 ms | **4.53 ms** |
+| thread per connection | 1 | 1,739 | 585 µs | 681 µs | 721 µs |
+| thread per connection | 16 | 5,121 | 2.85 ms | 5.18 ms | 6.38 ms |
+| thread per connection | 64 | 5,006 | 12.4 ms | 18.9 ms | **29.0 ms** |
+
+- **4× the throughput, 6.4× lower p99 at 64 clients, and no errors in either mode.** Two effects
+  compound. Thread creation per connection costs time. More importantly, each worker keeps
+  thread-local search workspaces (Dijkstra, A*, a CCH copy that shares the read-only hierarchy),
+  while a fresh thread per connection must allocate them again for every request.
+- Making that possible required splitting CCH into an immutable shared hierarchy plus per-thread
+  workspaces. The earlier design serialized every CCH query behind one mutex.
+- The worker pool's queue is bounded (1,024); beyond it the server answers 503 instead of queueing
+  without limit. No shedding occurred at these loads (`shed` = 0 in `server.json`).
+
+### Scale: the full northern-zone extract (17.2M nodes)
+
+| Item | Value |
+|---|---|
+| Graph | Geofabrik `asia/india/northern-zone` (Punjab, Haryana, Delhi, Himachal, J&K, …), 2026-10-17: 17,176,411 nodes, 35,415,385 directed edges (largest SCC of 17.43M), v_max 80 km/h |
+| Import | 9.8 s wall, 4.1 GB peak RSS; binary graph file 941 MB |
+| Agreement | 1,000/1,000 random queries: Dijkstra = Bidirectional = A*, every path sum = cost (716 s, 4 threads, 5.2 GB peak); CCH 100/100 |
+| CCH preprocessing | 16.5 s (ordering 5.4 s, contraction 1.4 s, customization 9.5 s); 77.1M upward edges; hierarchy 2.26 GB |
+
+Routing at scale (`routing_northern.json`, 100 random queries, interleaved):
+
+| Algorithm | median | p95 | p99 | nodes settled (median) |
+|---|---:|---:|---:|---:|
+| Dijkstra | 671 ms | 1,191 ms | 1,228 ms | 8.87 M |
+| Bidirectional | 439 ms | 1,090 ms | 1,188 ms | 5.51 M |
+| A* (chord) | 263 ms | 1,100 ms | 1,414 ms | 2.99 M |
+| A* (haversine) | 337 ms | 1,415 ms | 1,824 ms | 2.99 M |
+| **CCH** | **4.06 ms** | **5.37 ms** | **5.88 ms** | **3,320** |
+
+- **CCH is 165× faster than Dijkstra at the median at this scale**, against 12× on Tricity: its query
+  cost grows very slowly with graph size, while Dijkstra's grows with the area searched. The
+  16.5 s preprocessing breaks even after about 25 queries.
+- **A* still has the worst p99 of the online algorithms** (1.41 s). Long queries in a region with
+  80 km/h motorways give the bound little traction. The chord bound is 1.28× faster than haversine
+  at the median.
+- Memory is the real constraint at this size: the graph is 1.6 GB, Dijkstra's per-query workspace
+  is 268 MB, and the CCH hierarchy is 2.3 GB.
