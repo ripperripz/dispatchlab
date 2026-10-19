@@ -56,10 +56,12 @@
     base() {
       const [minLon, minLat, maxLon, maxLat] = this.frame;
       const W = this.canvas.width, H = this.canvas.height, pad = this.opts.padding * this.dpr;
+      // Optional insets keep fitted content clear of overlay chrome at the top/bottom.
+      const top = pad + (this.opts.insetTop || 0) * this.dpr, bottom = pad + (this.opts.insetBottom || 0) * this.dpr;
       const k = Math.cos(((minLat + maxLat) / 2) * Math.PI / 180);
       const w = Math.max(1e-9, (maxLon - minLon) * k), hh = Math.max(1e-9, maxLat - minLat);
-      const s = Math.min((W - 2 * pad) / w, (H - 2 * pad) / hh);
-      const ox = (W - w * s) / 2, oy = (H - hh * s) / 2;
+      const s = Math.min((W - 2 * pad) / w, Math.max(1, H - top - bottom) / hh);
+      const ox = (W - w * s) / 2, oy = bottom + (H - top - bottom - hh * s) / 2;
       return { k, s, ox, oy, minLon, minLat, H };
     }
 

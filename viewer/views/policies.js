@@ -121,7 +121,7 @@
         if (!sets.find(([k]) => k === S.set)) S.set = sets[0][0];
         const body = h('div');
         if (sets.length > 1) {
-          exSection.querySelector('.section-head').appendChild(DL.segmented(sets.map(([k, v]) => ({ value: k, label: k === 'full' ? 'Full (incl. large)' : 'Verify set', title: v.experiment_id })),
+          exSection.querySelector('.section-head').appendChild(DL.segmented(sets.map(([k, v]) => ({ value: k, label: k === 'full' ? 'Full set' : 'Verify set', title: v.experiment_id })),
             S.set, v => { S.set = v; S.cell = null; renderSet(); }, { label: 'Result set' }));
         }
         exSection.appendChild(body);
@@ -159,7 +159,7 @@
                   h('td', h('span.hash', p.nearest.scenario_hash), p.nearest.scenario_hash === p.greedy_eta.scenario_hash ? null : h('span.badge.err', 'differs')));
               })))),
             h('div.panel-foot', `${ex.experiment_id} · routing ${ex.routing_algorithm} · ${ex.environment.cpu} · generated ${ex.generated_utc.replace('T', ' ').replace('Z', ' UTC')}. Both policies share each row's scenario hash.`));
-          body.replaceChildren(heat, detail);
+          body.replaceChildren(h('div.heat-scroll', heat), detail);
         }
         renderSet();
       })().catch(e => { if (alive) exSection.appendChild(DL.errorCallout(e)); });

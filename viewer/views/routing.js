@@ -9,6 +9,7 @@
   const S = (DL.state.routing = DL.state.routing || { s: null, t: null, traffic: 'free', result: null, selected: 'dijkstra' });
 
   const SWEEP_MS = 1500;
+  const coarse = () => matchMedia('(pointer: coarse)').matches;
   const ease = x => 1 - Math.pow(1 - x, 3);
 
   DL.views.routing = {
@@ -73,7 +74,9 @@
         if (!net) return;
         endpointView(endA, 'a', S.s);
         endpointView(endB, 'b', S.t);
-        hint.lastChild.textContent = armed === 'a' ? 'Click the map to place the origin' : armed === 'b' ? 'Click the map to place the destination' : 'Drag to pan · scroll to zoom · click an endpoint to move it';
+        const verb = coarse() ? 'Tap' : 'Click';
+        hint.lastChild.textContent = armed === 'a' ? `${verb} the map to place the origin` : armed === 'b' ? `${verb} the map to place the destination`
+          : coarse() ? 'Drag to pan · pinch to zoom · tap an endpoint to move it' : 'Drag to pan · scroll to zoom · click an endpoint to move it';
       }
       function arm(which) { armed = which; canvas.classList.toggle('pick', !!armed); refreshEndpoints(); }
 
@@ -276,7 +279,8 @@
           host.replaceChildren(h('div.panel-body', DL.serverRequired('No network available', 'Start the engine to load the road network.')));
           return;
         }
-        map = new DL.MapView(canvas, net);
+        // Keep fitted routes clear of the hint (top) and legend (bottom) overlays.
+        map = new DL.MapView(canvas, net, { insetTop: 52, insetBottom: 48 });
         host.appendChild(DL.MapView.tools(map));
         map.addOverlay(mainOverlay);
         map.onPick = (lon, lat) => {

@@ -93,7 +93,7 @@
             r.logs_identical ? h('span.badge', `Logs identical · ${fmt.int(r.events)} events · ${fmt.bytes(r.log_bytes)}`) : h('span.badge.err', 'Logs differ'),
             r.replay_routing_free ? h('span.badge', 'Replay made zero routing calls') : h('span.badge.err', 'Replay routed')),
           h('div.split-hash',
-            hashCell('Run 1 final state', r.hash_run1),
+            hashCell('Run 1 final state (baseline)', r.hash_run1),
             hashCell('Run 2 final state', r.hash_run2, r.hash_run2 === r.hash_run1),
             hashCell('Replayed from log', r.replay_hash, r.replay_hash === r.hash_run1),
             hashCell(`Seed ${r.other_seed} (control)`, r.hash_other_seed, r.hash_other_seed !== r.hash_run1)),

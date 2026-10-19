@@ -38,6 +38,6 @@ table. A strip of four small-multiple search-space maps runs along the bottom.
 FORM: user-pinned canon (Vercel × Cloudflare × Linear), overriding the roll; the roll's assigned
 candidate was not used. Signature interaction: search spaces as animated small multiples, revealing
 settled nodes in settle order. Motion grammar: 150–200 ms ease-out on state changes; the one authored
-moment is the search sweep. seed: 8080f7ce2c244cea
+moment is the search sweep. seed:8080f7ce2c244cea
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance

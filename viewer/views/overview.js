@@ -29,11 +29,11 @@
           h('a.btn', { href: '#/simulation' }, icon('simulation'), 'Run a simulation'),
           h('a.btn.primary', { href: '#/routing' }, icon('route'), 'Open routing lab'))));
 
-      const grid = h('div.grid.grid-3-1');
+      const grid = h('div.grid.grid-3-1.stretch');
       page.appendChild(grid);
-      const mapPanel = h('section.panel',
-        h('div.panel-head', h('h2', 'Road network'), h('span.sub', 'Drag to pan · scroll to zoom')));
-      const host = h('div.map-host', { style: { height: '440px', background: 'var(--map-bg)' } });
+      const mapPanel = h('section.panel.column',
+        h('div.panel-head', h('h2', 'Road network'), h('span.sub', matchMedia('(pointer: coarse)').matches ? 'Drag to pan · pinch to zoom' : 'Drag to pan · scroll to zoom')));
+      const host = h('div.map-host', { style: { background: 'var(--map-bg)' } });
       mapPanel.appendChild(host);
       const facts = h('dl.facts');
       mapPanel.appendChild(facts);
@@ -85,7 +85,7 @@
           row('Graph in memory', fmt.bytes(info.graph.memory_bytes));
           row('Validation', info.graph.validate === 'ok' ? 'All checks pass' : info.graph.validate);
           row('CCH upward edges', `${fmt.int(info.cch.upward_edges)} (${(info.cch.upward_edges / info.cch.original_pairs).toFixed(1)}× fill-in)`);
-          row('CCH preprocessing', `${fmt.num(info.cch.order_ms + info.cch.contract_ms + info.cch.customize_ms, 0)} ms`);
+          row('CCH preprocessing (this server start)', `${fmt.num(info.cch.order_ms + info.cch.contract_ms + info.cch.customize_ms, 0)} ms`);
           row('Hierarchy size', fmt.bytes(info.cch.hierarchy_bytes));
           row('Compiler', info.environment.compiler);
           row('Processor', info.environment.cpu);
@@ -173,10 +173,10 @@
 
   DL.policySummaryTable = function (ex) {
     const cells = DL.policyCells(ex);
-    return h('div.panel', h('div.table-wrap', h('table.data',
+    return h('div.panel', h('div.table-wrap', h('table.data.nowrap',
       h('thead', h('tr', h('th', 'Scenario'), h('th', 'Traffic'), h('th.r', 'Nearest avg'), h('th.r', 'Greedy ETA avg'), h('th.r', 'Δ (paired)'), h('th.r', 'ETA better'), h('th.r', 'Undelivered N / E'))),
       h('tbody', cells.map(c => h('tr',
-        h('td', h('span', { style: { fontWeight: 500 } }, c.size.replace('_', ' ')), h('span.faint', ` · ${c.couriers} couriers, ${fmt.int(c.orders)} orders`)),
+        h('td', h('span', { style: { fontWeight: 500 } }, c.size.replace('_', ' ')), h('span.cell-sub', `${c.couriers} couriers · ${fmt.int(c.orders)} orders`)),
         h('td', c.traffic),
         h('td.r', fmt.min(c.nearest)), h('td.r', fmt.min(c.eta)),
         h('td.r', { class: c.delta < -0.005 ? 'r delta-good' : c.delta > 0.005 ? 'r delta-bad' : 'r delta-flat' }, `${fmt.signed(c.delta)} min`),

@@ -82,7 +82,7 @@
   // Overlaid histograms. series: [{name,color,values:[...]}]
   function histogram(series, opts = {}) {
     const all = series.flatMap(se => se.values);
-    const W = 640, H = opts.height || 220, m = { l: 40, r: 12, t: 10, b: 32 };
+    const W = 640, H = opts.height || 220, m = { l: 40, r: 12, t: 10, b: opts.xLabel ? 46 : 32 };
     const s = svg(W, H);
     s.setAttribute('aria-label', opts.label || 'Histogram');
     if (!all.length) return s;

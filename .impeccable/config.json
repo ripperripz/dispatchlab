@@ -8,6 +8,12 @@
         "value": "geist",
         "createdAt": "2026-10-19T02:36:51.671Z",
         "reason": "brief: user pinned Vercel x Cloudflare x Linear; Geist is Vercel's own UI typeface"
+      },
+      {
+        "rule": "overused-font",
+        "value": "geist mono",
+        "createdAt": "2026-10-19T02:45:33.952Z",
+        "reason": "brief: user pinned Vercel x Cloudflare x Linear; Geist Mono is Vercel's companion mono, used only for data/hashes/code"
       }
     ]
   }
