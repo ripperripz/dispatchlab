@@ -105,11 +105,22 @@ std::vector<std::uint32_t> nested_dissection_order(const Graph& g, const std::ve
 
 }  // namespace
 
+std::vector<std::uint32_t> nested_dissection_ranks(const Graph& g) {
+    std::vector<std::uint32_t> off, adj;
+    undirected(g, off, adj);
+    return nested_dissection_order(g, off, adj);
+}
+
 CCH::CCH(const Graph& g) : n_(g.num_nodes()), fwd_(g.num_nodes()), bwd_(g.num_nodes()) {
     std::vector<std::uint32_t> off, adj;
     undirected(g, off, adj);
     stats_.original_pairs = adj.size() / 2;
 
+    auto topo = std::make_shared<Topology>();
+    auto& rank_ = topo->rank;
+    auto& order_ = topo->order;
+    auto& up_offsets_ = topo->up_offsets;
+    auto& up_targets_ = topo->up_targets;
     auto t0 = std::chrono::steady_clock::now();
     rank_ = nested_dissection_order(g, off, adj);
     order_.assign(n_, 0);
@@ -148,11 +159,14 @@ CCH::CCH(const Graph& g) : n_(g.num_nodes()), fwd_(g.num_nodes()), bwd_(g.num_no
     }
     stats_.upward_edges = up_targets_.size();
     stats_.contract_ms = ms_since(t0);
+    topo_ = std::move(topo);
 
     customize(g);
 }
 
 std::uint32_t CCH::find_edge(std::uint32_t lo, std::uint32_t hi) const {
+    const auto& up_offsets_ = topo_->up_offsets;
+    const auto& up_targets_ = topo_->up_targets;
     const auto first = up_targets_.begin() + up_offsets_[lo];
     const auto last = up_targets_.begin() + up_offsets_[lo + 1];
     const auto it = std::lower_bound(first, last, hi);
@@ -163,6 +177,14 @@ std::uint32_t CCH::find_edge(std::uint32_t lo, std::uint32_t hi) const {
 void CCH::customize(const Graph& g) {
     if (g.num_nodes() != n_) throw std::invalid_argument("CCH::customize: graph size differs");
     const auto t0 = std::chrono::steady_clock::now();
+    const auto& rank_ = topo_->rank;
+    const auto& up_offsets_ = topo_->up_offsets;
+    const auto& up_targets_ = topo_->up_targets;
+    auto metric = std::make_shared<Metric>();
+    auto& up_w_ = metric->up_w;
+    auto& down_w_ = metric->down_w;
+    auto& up_mid_ = metric->up_mid;
+    auto& down_mid_ = metric->down_mid;
     const std::size_t m = up_targets_.size();
     up_w_.assign(m, kInfDist);
     down_w_.assign(m, kInfDist);
@@ -213,11 +235,18 @@ void CCH::customize(const Graph& g) {
     }
     stats_.triangles = triangles;
     stats_.customize_ms = ms_since(t0);
+    metric_ = std::move(metric);
 }
 
 RouteResult CCH::query(NodeId s, NodeId t, bool with_path, std::vector<NodeId>* trace) {
     if (s >= n_ || t >= n_) throw std::out_of_range("CCH: node id out of range");
     count_routing_call();
+    const auto& rank_ = topo_->rank;
+    const auto& order_ = topo_->order;
+    const auto& up_offsets_ = topo_->up_offsets;
+    const auto& up_targets_ = topo_->up_targets;
+    const auto& up_w_ = metric_->up_w;
+    const auto& down_w_ = metric_->down_w;
     RouteResult r;
     fwd_.reset();
     bwd_.reset();
@@ -273,8 +302,73 @@ RouteResult CCH::query(NodeId s, NodeId t, bool with_path, std::vector<NodeId>* 
     return r;
 }
 
+std::uint32_t CCH::prepare_target(NodeId t) {
+    if (t >= n_) throw std::out_of_range("CCH: node id out of range");
+    count_routing_call();
+    const auto& up_offsets_ = topo_->up_offsets;
+    const auto& up_targets_ = topo_->up_targets;
+    const auto& down_w_ = metric_->down_w;
+    bwd_.reset();
+    bheap_.clear();
+    const std::uint32_t rt = topo_->rank[t];
+    bwd_.set(rt, 0, kInvalidNode);
+    bheap_.push({0, rt});
+    std::uint32_t settled = 0;
+    while (!bheap_.empty()) {
+        const HeapItem top = bheap_.take();
+        if (top.key != bwd_.dist(top.node)) continue;
+        ++settled;
+        for (std::uint32_t e = up_offsets_[top.node]; e < up_offsets_[top.node + 1]; ++e) {
+            if (down_w_[e] == kInfDist) continue;
+            const Dist nd = top.key + down_w_[e];
+            if (nd < bwd_.dist(up_targets_[e])) {
+                bwd_.set(up_targets_[e], nd, top.node);
+                bheap_.push({nd, up_targets_[e]});
+            }
+        }
+    }
+    return settled;
+}
+
+// Forward upward search from s against the prepared backward labels; any s-t
+// shortest path has an up-down form whose peak carries an exact backward label,
+// so stopping once the forward key reaches the best meeting cost is exact.
+Dist CCH::distance_from_prepared(NodeId s, std::uint32_t* settled_out) {
+    if (s >= n_) throw std::out_of_range("CCH: node id out of range");
+    const auto& up_offsets_ = topo_->up_offsets;
+    const auto& up_targets_ = topo_->up_targets;
+    const auto& up_w_ = metric_->up_w;
+    fwd_.reset();
+    fheap_.clear();
+    const std::uint32_t rs = topo_->rank[s];
+    fwd_.set(rs, 0, kInvalidNode);
+    fheap_.push({0, rs});
+    Dist mu = kInfDist;
+    std::uint32_t settled = 0;
+    while (!fheap_.empty() && fheap_.top().key < mu) {
+        const HeapItem top = fheap_.take();
+        if (top.key != fwd_.dist(top.node)) continue;
+        ++settled;
+        const Dist b = bwd_.dist(top.node);
+        if (b != kInfDist) mu = std::min(mu, top.key + b);
+        for (std::uint32_t e = up_offsets_[top.node]; e < up_offsets_[top.node + 1]; ++e) {
+            if (up_w_[e] == kInfDist) continue;
+            const Dist nd = top.key + up_w_[e];
+            if (nd < fwd_.dist(up_targets_[e])) {
+                fwd_.set(up_targets_[e], nd, top.node);
+                fheap_.push({nd, up_targets_[e]});
+            }
+        }
+    }
+    if (settled_out) *settled_out = settled;
+    return mu;
+}
+
 // Appends the original nodes of the hierarchy edge from->to (excluding `from`).
 void CCH::unpack(std::uint32_t from, std::uint32_t to, std::vector<NodeId>& out) const {
+    const auto& order_ = topo_->order;
+    const auto& up_mid_ = metric_->up_mid;
+    const auto& down_mid_ = metric_->down_mid;
     std::vector<std::pair<std::uint32_t, std::uint32_t>> stack{{from, to}};
     while (!stack.empty()) {
         const auto [a, b] = stack.back();
@@ -292,9 +386,11 @@ void CCH::unpack(std::uint32_t from, std::uint32_t to, std::vector<NodeId>& out)
 }
 
 std::size_t CCH::memory_bytes() const {
-    return (rank_.capacity() + order_.capacity() + up_offsets_.capacity() + up_targets_.capacity() +
-            up_mid_.capacity() + down_mid_.capacity()) * sizeof(std::uint32_t) +
-           (up_w_.capacity() + down_w_.capacity()) * sizeof(Dist);
+    const Topology& T = *topo_;
+    const Metric& M = *metric_;
+    return (T.rank.capacity() + T.order.capacity() + T.up_offsets.capacity() + T.up_targets.capacity() +
+            M.up_mid.capacity() + M.down_mid.capacity()) * sizeof(std::uint32_t) +
+           (M.up_w.capacity() + M.down_w.capacity()) * sizeof(Dist);
 }
 
 std::size_t CCH::query_memory_bytes() const {

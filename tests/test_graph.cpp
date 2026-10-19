@@ -112,6 +112,20 @@ TEST_CASE("graph: induced subgraph keeps order and edges") {
     CHECK(validate(s).empty());
 }
 
+TEST_CASE("graph: relabel preserves every distance") {
+    Graph g = fixtures::random_geometric(300, 3, 5);
+    std::vector<NodeId> perm(g.num_nodes());
+    for (NodeId v = 0; v < g.num_nodes(); ++v) perm[v] = v;
+    Rng rng(3);
+    for (std::size_t i = perm.size() - 1; i > 0; --i) std::swap(perm[i], perm[rng.below(i + 1)]);
+    Graph h = relabel(g, perm);
+    CHECK(validate(h).empty());
+    CHECK(h.num_edges() == g.num_edges());
+    for (NodeId u = 0; u < g.num_nodes(); ++u)
+        for (auto e = g.out_begin(u); e < g.out_end(u); ++e) CHECK(h.edge_weight(perm[u], perm[g.targets[e]]) == g.weights[e]);
+    CHECK_THROWS(relabel(g, std::vector<NodeId>(g.num_nodes(), 0)));
+}
+
 TEST_CASE("graph: strong connectivity check") {
     CHECK(is_strongly_connected(fixtures::oneway_cycle()));
     CHECK_FALSE(is_strongly_connected(fixtures::classic()));

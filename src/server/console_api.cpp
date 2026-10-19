@@ -94,9 +94,29 @@ void write_scenario_summary(json::Writer& w, const Scenario& sc) {
 
 struct TrafficContext {
     Graph graph;
-    std::unique_ptr<CCH> cch;
-    std::mutex cch_mu;  // CCH query workspaces are not thread-safe
+    std::unique_ptr<CCH> cch;  // prototype; threads query cheap copies sharing its hierarchy
+    std::shared_ptr<const UnitVectors> unit;
 };
+
+// Per-thread query engines for one traffic context. Each worker thread owns
+// its workspaces, so queries run concurrently without locks; the CCH copy
+// shares the read-only hierarchy with the prototype.
+struct Engines {
+    Dijkstra dij;
+    BidirectionalDijkstra bi;
+    AStar astar;
+    CCH cch;
+    explicit Engines(const TrafficContext& c)
+        : dij(make_dijkstra(c.graph)), bi(c.graph), astar(c.graph, Heuristic::Chord, c.unit), cch(*c.cch) {}
+};
+
+Engines& engines_for(const TrafficContext& ctx) {
+    // Contexts live for the server's lifetime, so their address is a stable key.
+    thread_local std::map<const TrafficContext*, std::unique_ptr<Engines>> local;
+    auto& slot = local[&ctx];
+    if (!slot) slot = std::make_unique<Engines>(ctx);
+    return *slot;
+}
 
 }  // namespace
 
@@ -119,12 +139,14 @@ struct ConsoleApi::Impl {
         ctx->graph = apply_traffic(base, t, 1);  // routing lab uses traffic seed 1
         ctx->cch = std::make_unique<CCH>(*base_cch);
         ctx->cch->customize(ctx->graph);
+        ctx->unit = make_unit_vectors(ctx->graph);
         traffic[key] = ctx;
         return ctx;
     }
 
     HttpResponse info();
     HttpResponse route(const HttpRequest& req);
+    HttpResponse distance(const HttpRequest& req);
     HttpResponse simulate(const HttpRequest& req);
     HttpResponse compare(const HttpRequest& req);
     HttpResponse agreement(const HttpRequest& req);
@@ -182,6 +204,7 @@ HttpResponse ConsoleApi::handle(const HttpRequest& req) {
     if (p == "/api/info") return impl_->info();
     if (p == "/api/network") return json_response(impl_->network_json);
     if (p == "/api/route") return impl_->route(req);
+    if (p == "/api/distance") return impl_->distance(req);
     if (p == "/api/simulate") return impl_->simulate(req);
     if (p == "/api/compare") return impl_->compare(req);
     if (p == "/api/agreement") return impl_->agreement(req);
@@ -240,10 +263,7 @@ HttpResponse ConsoleApi::Impl::route(const HttpRequest& req) {
     const bool want_trace = req.param("trace", "1") != "0";
     auto ctx = traffic_context(req.param("traffic", "free"));
     const Graph& g = ctx->graph;
-
-    Dijkstra dij = make_dijkstra(g);
-    BidirectionalDijkstra bi(g);
-    AStar astar(g);
+    Engines& eng = engines_for(*ctx);
     struct Run {
         const char* id;
         const char* label;
@@ -257,13 +277,10 @@ HttpResponse ConsoleApi::Impl::route(const HttpRequest& req) {
                    {"cch", "CCH", {}, 0, {}}};
     auto query = [&](int a, std::vector<NodeId>* trace) -> RouteResult {
         switch (a) {
-            case 0: return dij.query(s, t, true, trace);
-            case 1: return bi.query(s, t, true, trace);
-            case 2: return astar.query(s, t, true, trace);
-            default: {
-                std::lock_guard<std::mutex> lock(ctx->cch_mu);
-                return ctx->cch->query(s, t, true, trace);
-            }
+            case 0: return eng.dij.query(s, t, true, trace);
+            case 1: return eng.bi.query(s, t, true, trace);
+            case 2: return eng.astar.query(s, t, true, trace);
+            default: return eng.cch.query(s, t, true, trace);
         }
     };
     for (int a = 0; a < 4; ++a) {
@@ -309,6 +326,30 @@ HttpResponse ConsoleApi::Impl::route(const HttpRequest& req) {
     }
     w.end_array();
     w.end_object();
+    return json_response(w.take());
+}
+
+// One shortest-path query with one algorithm, no path payload: the endpoint the
+// load benchmark drives. Lock-free (thread-local engines).
+HttpResponse ConsoleApi::Impl::distance(const HttpRequest& req) {
+    const std::int64_t n = base.num_nodes();
+    const auto s = static_cast<NodeId>(req.int_param("s", 0, 0, n - 1));
+    const auto t = static_cast<NodeId>(req.int_param("t", 0, 0, n - 1));
+    const std::string algo = req.param("algo", "cch");
+    auto ctx = traffic_context(req.param("traffic", "free"));
+    Engines& eng = engines_for(*ctx);
+    const auto t0 = Clock::now();
+    RouteResult r;
+    if (algo == "cch") r = eng.cch.query(s, t, false);
+    else if (algo == "astar") r = eng.astar.query(s, t, false);
+    else if (algo == "bidirectional") r = eng.bi.query(s, t, false);
+    else if (algo == "dijkstra") r = eng.dij.query(s, t, false);
+    else throw std::invalid_argument("algo must be dijkstra, bidirectional, astar or cch");
+    const double us = us_since(t0);
+    json::Writer w;
+    w.begin_object().kv("s", s).kv("t", t).kv("algo", algo);
+    w.kv("cost_ms", r.reachable() ? static_cast<std::int64_t>(r.cost) : static_cast<std::int64_t>(-1));
+    w.kv("settled", r.stats.settled).kv("latency_us", us, 1).end_object();
     return json_response(w.take());
 }
 
@@ -394,9 +435,7 @@ HttpResponse ConsoleApi::Impl::agreement(const HttpRequest& req) {
     auto ctx = traffic_context(req.param("traffic", "free"));
     const Graph& g = ctx->graph;
     std::lock_guard<std::mutex> heavy(heavy_mu);
-    Dijkstra dij = make_dijkstra(g);
-    BidirectionalDijkstra bi(g);
-    AStar astar(g);
+    Engines& eng = engines_for(*ctx);
     Rng rng(seed);
     std::vector<double> lat[4], settled[4];
     std::uint32_t failures = 0;
@@ -409,20 +448,17 @@ HttpResponse ConsoleApi::Impl::agreement(const HttpRequest& req) {
         const auto t = static_cast<NodeId>(rng.below(g.num_nodes()));
         RouteResult r[4];
         auto t0 = Clock::now();
-        r[0] = dij.query(s, t);
+        r[0] = eng.dij.query(s, t);
         lat[0].push_back(us_since(t0));
         t0 = Clock::now();
-        r[1] = bi.query(s, t);
+        r[1] = eng.bi.query(s, t);
         lat[1].push_back(us_since(t0));
         t0 = Clock::now();
-        r[2] = astar.query(s, t);
+        r[2] = eng.astar.query(s, t);
         lat[2].push_back(us_since(t0));
-        {
-            std::lock_guard<std::mutex> lock(ctx->cch_mu);
-            t0 = Clock::now();
-            r[3] = ctx->cch->query(s, t);
-            lat[3].push_back(us_since(t0));
-        }
+        t0 = Clock::now();
+        r[3] = eng.cch.query(s, t);
+        lat[3].push_back(us_since(t0));
         bool ok = true;
         for (int a = 0; a < 4; ++a) {
             settled[a].push_back(r[a].stats.settled);

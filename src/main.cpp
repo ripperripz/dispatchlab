@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <csignal>
+#include <thread>
 #include <fstream>
 
 #include "dispatchlab/console_api.hpp"
@@ -103,7 +104,7 @@ void usage() {
         "                [--js viewer/replay_data.js] [--results-js viewer/results_data.js] [--policy NAME]\n"
         "      Write the replay document (and optionally the benchmark/experiment bundle) for the\n"
         "      console, so viewer/index.html works from file:// without a server.\n"
-        "  serve <graph> [--port 8080] [--root viewer] [--results .] [--quiet]\n"
+        "  serve <graph> [--port 8080] [--workers N] [--root viewer] [--results .] [--quiet]\n"
         "      Run the console on http://127.0.0.1:<port> (loopback only): live routing lab,\n"
         "      simulations, policy comparison, benchmarks and correctness checks.\n"
         "  validate-replay <replay.json>\n"
@@ -389,10 +390,13 @@ int cmd_serve(const Args& a) {
     opts.results_root = a.get("results", ".");
     ConsoleApi api(std::move(g), opts);
     const auto port = static_cast<std::uint16_t>(a.num("port", 8080));
-    HttpServer server(port, [&api](const HttpRequest& req) { return api.handle(req); }, !a.has("quiet"));
+    // Worker pool by default; --workers 0 selects thread-per-connection.
+    const auto workers = static_cast<unsigned>(a.num("workers", std::max(1u, std::thread::hardware_concurrency())));
+    HttpServer server(port, [&api](const HttpRequest& req) { return api.handle(req); }, !a.has("quiet"), workers);
     std::printf("DispatchLab console ready in %.2fs: %u nodes, %u edges (CCH built)\n", secs_since(t0),
                 api.graph().num_nodes(), api.graph().num_edges());
-    std::printf("listening http://127.0.0.1:%u/  (loopback only; Ctrl+C to stop)\n", server.port());
+    std::printf("listening http://127.0.0.1:%u/  (loopback only, %s; Ctrl+C to stop)\n", server.port(),
+                workers ? (std::to_string(workers) + " workers").c_str() : "thread per connection");
     std::fflush(stdout);
     server.run();
     return 0;

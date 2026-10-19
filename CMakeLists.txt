@@ -71,8 +71,13 @@ if(DISPATCHLAB_WITH_OSM)
 endif()
 
 # ---------------------------------------------------------------- CLI
-add_executable(dispatchlab src/main.cpp src/tools/viewer_export.cpp src/tools/perf_report.cpp
-  src/server/console_api.cpp)
+# Console API + export/report tools, shared by the CLI and the server benchmark.
+add_library(dispatchlab_console STATIC src/server/console_api.cpp src/tools/viewer_export.cpp src/tools/perf_report.cpp)
+target_compile_options(dispatchlab_console PRIVATE ${DL_WARNINGS})
+target_link_libraries(dispatchlab_console PUBLIC dispatchlab_core)
+
+add_executable(dispatchlab src/main.cpp)
+target_link_libraries(dispatchlab PRIVATE dispatchlab_console)
 target_compile_options(dispatchlab PRIVATE ${DL_WARNINGS})
 if(DISPATCHLAB_WITH_OSM)
   target_link_libraries(dispatchlab PRIVATE dispatchlab_osm)
@@ -133,7 +138,11 @@ if(DISPATCHLAB_WITH_OSM)
 endif()
 
 # ---------------------------------------------------------------- benchmarks
-foreach(bench benchmark_graph benchmark_routing benchmark_dispatch)
+add_executable(benchmark_server benchmarks/benchmark_server.cpp)
+target_compile_options(benchmark_server PRIVATE ${DL_WARNINGS})
+target_link_libraries(benchmark_server PRIVATE dispatchlab_console)
+
+foreach(bench benchmark_graph benchmark_routing benchmark_dispatch benchmark_layout benchmark_eta)
   add_executable(${bench} benchmarks/${bench}.cpp)
   target_compile_options(${bench} PRIVATE ${DL_WARNINGS})
   target_link_libraries(${bench} PRIVATE dispatchlab_core)

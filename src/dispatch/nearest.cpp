@@ -25,12 +25,16 @@ std::uint32_t NearestPolicy::choose(const DispatchRequest& req, const std::vecto
     last_ = DecisionInfo{};
     last_.courier = best;
     last_.geo_distance_m = best_m;
+    account(available.size());
     return best;
 }
 
 std::unique_ptr<DispatchPolicy> make_policy(std::string_view name, const Graph& g) {
     if (name == "nearest") return std::make_unique<NearestPolicy>(g);
     if (name == "greedy_eta" || name == "eta") return std::make_unique<GreedyEtaPolicy>(g);
+    if (name == "greedy_eta_pruned") return std::make_unique<GreedyEtaPolicy>(g, EtaStrategy::Pruned);
+    if (name == "greedy_eta_cch") return std::make_unique<GreedyEtaPolicy>(g, EtaStrategy::Cch);
+    if (name == "greedy_eta_bounded") return std::make_unique<GreedyEtaPolicy>(g, EtaStrategy::Bounded);
     throw std::invalid_argument("unknown dispatch policy: " + std::string(name));
 }
 

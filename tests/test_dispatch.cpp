@@ -1,4 +1,5 @@
 #include "dispatchlab/dispatch.hpp"
+#include "dispatchlab/simulator.hpp"
 #include "dispatchlab/geo.hpp"
 #include "doctest.h"
 #include "fixtures.hpp"
@@ -89,4 +90,84 @@ TEST_CASE("dispatch: greedy eta only considers available couriers") {
     CHECK(make_policy("nearest", g)->name() == "nearest");
     CHECK(make_policy("greedy_eta", g)->name() == "greedy_eta");
     CHECK_THROWS(make_policy("min_cost_flow", g));
+}
+
+namespace {
+const char* kEtaVariants[] = {"greedy_eta", "greedy_eta_pruned", "greedy_eta_cch", "greedy_eta_bounded"};
+}
+
+TEST_CASE("dispatch: greedy eta strategies make identical decisions on random requests") {
+    for (std::uint64_t seed = 1; seed <= 6; ++seed) {
+        Graph g = seed % 2 ? fixtures::grid(16, 16) : fixtures::random_geometric(400, 3, seed);
+        CCH cch(g);
+        GreedyEtaPolicy full(g, EtaStrategy::Full), pruned(g, EtaStrategy::Pruned), viacch(g, EtaStrategy::Cch, &cch),
+            bounded(g, EtaStrategy::Bounded, &cch);
+        Rng rng(seed);
+        for (int i = 0; i < 300; ++i) {
+            const auto r = static_cast<NodeId>(rng.below(g.num_nodes()));
+            const auto d = static_cast<NodeId>(rng.below(g.num_nodes()));
+            if (g.num_nodes() && make_dijkstra(g).query(r, d, false).cost == kInfDist) continue;
+            const SimTime now = rng.range(0, 3600000);
+            // Mix of "food already ready" and "food ready much later" (tie-heavy) requests.
+            const SimTime ready = rng.below(2) ? now : now + rng.range(0, 1800000);
+            std::vector<CourierCandidate> av;
+            const auto k = rng.range(1, 40);
+            for (std::int64_t j = 0; j < k; ++j) {
+                // Some couriers share nodes to exercise the id tie-break.
+                const NodeId loc = j > 0 && rng.below(5) == 0 ? av.back().location : static_cast<NodeId>(rng.below(g.num_nodes()));
+                av.push_back({static_cast<std::uint32_t>(j * 3 + 1), loc});
+            }
+            DispatchRequest req{0, r, d, now, ready};
+            std::uint32_t chosen[4];
+            SimTime eta[4];
+            bool ok[4];
+            GreedyEtaPolicy* pols[4] = {&full, &pruned, &viacch, &bounded};
+            for (int p = 0; p < 4; ++p) {
+                try {
+                    chosen[p] = pols[p]->choose(req, av);
+                    eta[p] = pols[p]->last_decision().eta;
+                    ok[p] = true;
+                } catch (const std::runtime_error&) {
+                    ok[p] = false;  // no courier can reach the restaurant
+                }
+            }
+            for (int p = 1; p < 4; ++p) {
+                REQUIRE(ok[p] == ok[0]);
+                if (ok[0]) {
+                    REQUIRE(chosen[p] == chosen[0]);
+                    REQUIRE(eta[p] == eta[0]);
+                }
+            }
+        }
+        // The decision-aware strategies must not do more exact work than the baseline.
+        CHECK(pruned.nodes_settled() <= full.nodes_settled());
+        CHECK(bounded.exact_distances() <= viacch.exact_distances());
+    }
+}
+
+TEST_CASE("dispatch: greedy eta strategies give identical simulations (same log, same hash)") {
+    Graph g = fixtures::grid(14, 14);
+    ScenarioParams p;
+    p.couriers = 10;
+    p.orders = 120;
+    p.order_window_ms = 90 * 60000;  // busy enough to queue orders
+    p.max_delivery_km = 2.0;
+    p.seed = 21;
+    Scenario sc = generate_scenario(g, p);
+    std::vector<std::string> logs;
+    std::vector<std::uint64_t> hashes;
+    for (const char* name : kEtaVariants) {
+        auto pol = make_policy(name, g);
+        CHECK(pol->name() == name);
+        Simulator sim(g, sc, *pol, Algorithm::AStar);
+        SimResult r = sim.run();
+        std::string text;
+        for (const auto& e : r.log) text += log_event_to_json(e, false) + "\n";
+        logs.push_back(text);
+        hashes.push_back(r.final_state_hash);
+    }
+    for (std::size_t i = 1; i < hashes.size(); ++i) {
+        CHECK(hashes[i] == hashes[0]);
+        CHECK(logs[i] == logs[0]);
+    }
 }

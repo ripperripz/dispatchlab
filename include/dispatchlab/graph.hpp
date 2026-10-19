@@ -79,6 +79,11 @@ Graph build_csr(std::uint32_t num_nodes, std::vector<EdgeInput> edges,
 // sources are sorted ascending.
 void build_reverse(Graph& g);
 
+// Renumbers nodes: node v becomes new_id[v] (a permutation of 0..n-1). Edges,
+// coordinates and OSM ids move with their nodes; the CSR is rebuilt, so the
+// result is a different memory layout of the same graph.
+Graph relabel(const Graph& g, const std::vector<NodeId>& new_id);
+
 // Induced subgraph on nodes with keep[v] != 0. New ids preserve the relative
 // order of old ids.
 Graph induced_subgraph(const Graph& g, const std::vector<char>& keep);

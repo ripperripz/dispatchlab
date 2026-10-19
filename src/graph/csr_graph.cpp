@@ -123,6 +123,32 @@ void build_reverse(Graph& g) {
     }
 }
 
+Graph relabel(const Graph& g, const std::vector<NodeId>& new_id) {
+    const std::uint32_t n = g.num_nodes();
+    if (new_id.size() != n) throw std::invalid_argument("relabel: permutation size mismatch");
+    std::vector<char> seen(n, 0);
+    for (NodeId v : new_id) {
+        if (v >= n || seen[v]++) throw std::invalid_argument("relabel: not a permutation");
+    }
+    std::vector<double> lat(n), lon(n);
+    std::vector<std::uint64_t> ids(n);
+    for (NodeId v = 0; v < n; ++v) {
+        lat[new_id[v]] = g.lat[v];
+        lon[new_id[v]] = g.lon[v];
+        ids[new_id[v]] = g.osm_ids[v];
+    }
+    std::vector<EdgeInput> edges;
+    edges.reserve(g.num_edges());
+    for (NodeId u = 0; u < n; ++u) {
+        for (std::uint32_t e = g.offsets[u]; e < g.offsets[u + 1]; ++e) {
+            edges.push_back({new_id[u], new_id[g.targets[e]], g.weights[e], g.lengths_mm[e], g.road_class[e]});
+        }
+    }
+    Graph out = build_csr(n, std::move(edges), std::move(lat), std::move(lon), std::move(ids));
+    out.meta = g.meta;
+    return out;
+}
+
 Graph induced_subgraph(const Graph& g, const std::vector<char>& keep) {
     const std::uint32_t n = g.num_nodes();
     if (keep.size() != n) throw std::invalid_argument("induced_subgraph: keep size mismatch");

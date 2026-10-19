@@ -116,8 +116,9 @@ const char* mime_type_for(const std::string& path) {
     return "application/octet-stream";
 }
 
-HttpServer::HttpServer(std::uint16_t port, HttpHandler handler, bool log_requests)
-    : handler_(std::move(handler)), log_(log_requests) {
+HttpServer::HttpServer(std::uint16_t port, HttpHandler handler, bool log_requests, unsigned workers,
+                       std::size_t max_queue)
+    : handler_(std::move(handler)), log_(log_requests), workers_(workers), max_queue_(max_queue) {
     listen_fd_ = ::socket(AF_INET, SOCK_STREAM, 0);
     if (listen_fd_ < 0) throw std::runtime_error("socket() failed");
     int one = 1;
@@ -150,10 +151,33 @@ void HttpServer::stop() {
         ::close(listen_fd_);
         listen_fd_ = -1;
     }
+    cv_.notify_all();
+    for (auto& t : pool_) {
+        if (t.joinable()) t.join();
+    }
+    pool_.clear();
+    std::lock_guard<std::mutex> lock(mu_);
+    for (int fd : queue_) ::close(fd);
+    queue_.clear();
+}
+
+void HttpServer::worker_loop() {
+    while (true) {
+        int fd;
+        {
+            std::unique_lock<std::mutex> lock(mu_);
+            cv_.wait(lock, [this] { return !queue_.empty() || !running_; });
+            if (queue_.empty()) return;  // stopping
+            fd = queue_.front();
+            queue_.pop_front();
+        }
+        serve_connection(fd);
+    }
 }
 
 void HttpServer::run() {
     running_ = true;
+    for (unsigned i = 0; i < workers_; ++i) pool_.emplace_back([this] { worker_loop(); });
     while (running_) {
         const int fd = ::accept(listen_fd_, nullptr, nullptr);
         if (fd < 0) {
@@ -164,7 +188,27 @@ void HttpServer::run() {
         int one = 1;
         ::setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &one, sizeof one);
 #endif
-        std::thread([this, fd] { serve_connection(fd); }).detach();
+        if (workers_ == 0) {
+            std::thread([this, fd] { serve_connection(fd); }).detach();
+            continue;
+        }
+        bool queued = false;
+        {
+            std::lock_guard<std::mutex> lock(mu_);
+            if (queue_.size() < max_queue_) {
+                queue_.push_back(fd);
+                queued = true;
+            }
+        }
+        if (queued) {
+            cv_.notify_one();
+        } else {  // overloaded: shed instead of queueing without bound
+            ++shed_;
+            static const char k503[] =
+                "HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\nRetry-After: 1\r\n\r\n";
+            send_all(fd, k503, sizeof k503 - 1);
+            ::close(fd);
+        }
     }
 }
 

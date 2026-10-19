@@ -17,13 +17,13 @@ std::vector<NodeId> unwind(const SearchWorkspace& ws, NodeId t) {
 
 }  // namespace
 
-template <class Access>
-BasicDijkstra<Access>::BasicDijkstra(Access access) : access_(access), ws_(access.num_nodes()) {
+template <class Access, class Heap>
+BasicDijkstra<Access, Heap>::BasicDijkstra(Access access) : access_(access), ws_(access.num_nodes()) {
     target_mark_.assign(access.num_nodes(), 0);
 }
 
-template <class Access>
-RouteResult BasicDijkstra<Access>::query(NodeId s, NodeId t, bool with_path, std::vector<NodeId>* trace) {
+template <class Access, class Heap>
+RouteResult BasicDijkstra<Access, Heap>::query(NodeId s, NodeId t, bool with_path, std::vector<NodeId>* trace) {
     const std::uint32_t n = access_.num_nodes();
     if (s >= n || t >= n) throw std::out_of_range("Dijkstra: node id out of range");
     count_routing_call();
@@ -57,8 +57,8 @@ RouteResult BasicDijkstra<Access>::query(NodeId s, NodeId t, bool with_path, std
     return r;
 }
 
-template <class Access>
-void BasicDijkstra<Access>::one_to_all(NodeId s, QueryStats* stats) {
+template <class Access, class Heap>
+void BasicDijkstra<Access, Heap>::one_to_all(NodeId s, QueryStats* stats) {
     if (s >= access_.num_nodes()) throw std::out_of_range("Dijkstra: node id out of range");
     count_routing_call();
     ws_.reset();
@@ -82,8 +82,8 @@ void BasicDijkstra<Access>::one_to_all(NodeId s, QueryStats* stats) {
     if (stats) *stats = st;
 }
 
-template <class Access>
-std::vector<Dist> BasicDijkstra<Access>::one_to_many(NodeId s, const std::vector<NodeId>& targets,
+template <class Access, class Heap>
+std::vector<Dist> BasicDijkstra<Access, Heap>::one_to_many(NodeId s, const std::vector<NodeId>& targets,
                                                      QueryStats* stats) {
     const std::uint32_t n = access_.num_nodes();
     if (s >= n) throw std::out_of_range("Dijkstra: node id out of range");
@@ -133,6 +133,9 @@ std::vector<Dist> BasicDijkstra<Access>::one_to_many(NodeId s, const std::vector
 template class BasicDijkstra<CsrOut>;
 template class BasicDijkstra<CsrIn>;
 template class BasicDijkstra<AdjOut>;
+template class BasicDijkstra<CsrOut, QuaternaryHeap>;
+template class BasicDijkstra<CsrOut, RadixHeap<HeapItem>>;
+template class BasicDijkstra<CsrOut, StdHeap<HeapItem, HeapItemLess>>;
 
 // ---------------------------------------------------------------- shared helpers
 

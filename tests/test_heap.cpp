@@ -1,4 +1,5 @@
 #include <queue>
+#include <set>
 #include <vector>
 
 #include "dispatchlab/binary_heap.hpp"
@@ -93,4 +94,73 @@ TEST_CASE("heap: max-heap via std::greater and clear()") {
     CHECK(h.top() == 99);
     h.clear();
     CHECK(h.empty());
+}
+
+#include "dispatchlab/heaps.hpp"
+#include "dispatchlab/routing.hpp"
+#include "fixtures.hpp"
+
+TEST_CASE("heap: 4-ary heap matches std::priority_queue on random interleaved ops") {
+    for (std::uint64_t seed = 1; seed <= 30; ++seed) {
+        Rng rng(seed);
+        dispatchlab::DaryHeap<std::uint64_t, 4> h;
+        std::priority_queue<std::uint64_t, std::vector<std::uint64_t>, std::greater<>> ref;
+        for (int i = 0; i < 4000; ++i) {
+            if (ref.empty() || rng.below(100) < 55) {
+                const auto v = rng.below(seed % 2 ? 40 : 1000000);
+                h.push(v);
+                ref.push(v);
+            } else {
+                REQUIRE(h.take() == ref.top());
+                ref.pop();
+            }
+            REQUIRE(h.size() == ref.size());
+            if (i % 101 == 0) REQUIRE(h.is_valid());
+        }
+    }
+}
+
+TEST_CASE("heap: radix heap matches a reference on monotone (Dijkstra-like) sequences") {
+    using dispatchlab::HeapItem;
+    for (std::uint64_t seed = 1; seed <= 30; ++seed) {
+        Rng rng(seed);
+        dispatchlab::RadixHeap<HeapItem> h;
+        std::multiset<dispatchlab::Dist> ref;
+        dispatchlab::Dist last = 0;
+        for (int i = 0; i < 5000; ++i) {
+            if (ref.empty() || rng.below(100) < 60) {
+                const dispatchlab::Dist k = last + rng.below(seed % 2 ? 8 : 5000000);  // >= last taken key
+                h.push({k, static_cast<dispatchlab::NodeId>(i)});
+                ref.insert(k);
+            } else {
+                const HeapItem x = h.take();
+                REQUIRE(x.key == *ref.begin());
+                ref.erase(ref.begin());
+                last = x.key;
+            }
+            REQUIRE(h.size() == ref.size());
+        }
+        if (last > 0) CHECK_THROWS_AS(h.push({last - 1, 0}), std::logic_error);
+    }
+}
+
+TEST_CASE("heap: Dijkstra gives identical costs with every heap variant") {
+    using namespace dispatchlab;
+    for (std::uint64_t seed = 1; seed <= 8; ++seed) {
+        Graph g = fixtures::random_geometric(500, 3, seed);
+        Dijkstra a = make_dijkstra(g);
+        Dijkstra4Ary b{CsrOut{&g}};
+        DijkstraRadix c{CsrOut{&g}};
+        DijkstraStdHeap d{CsrOut{&g}};
+        Rng rng(seed);
+        for (int i = 0; i < 300; ++i) {
+            const auto s = static_cast<NodeId>(rng.below(g.num_nodes())), t = static_cast<NodeId>(rng.below(g.num_nodes()));
+            const RouteResult ra = a.query(s, t);
+            REQUIRE(b.query(s, t, false).cost == ra.cost);
+            const RouteResult rc = c.query(s, t);
+            REQUIRE(rc.cost == ra.cost);
+            if (rc.reachable()) REQUIRE(path_cost(g, rc.path) == rc.cost);
+            REQUIRE(d.query(s, t, false).cost == ra.cost);
+        }
+    }
 }

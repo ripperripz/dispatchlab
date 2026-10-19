@@ -8,6 +8,7 @@
 
 #include "dispatchlab/binary_heap.hpp"
 #include "dispatchlab/graph.hpp"
+#include "dispatchlab/heaps.hpp"
 #include "dispatchlab/types.hpp"
 
 namespace dispatchlab {
@@ -102,9 +103,10 @@ struct AdjOut {
     }
 };
 
-// Reference exact shortest paths (Dijkstra, binary heap, lazy deletion).
-// O((V + E) log V) per query.
-template <class Access>
+// Reference exact shortest paths (Dijkstra, lazy deletion). The heap is a
+// template parameter for the priority-queue study; the default is the
+// project's binary heap. O((V + E) log V) per query with a binary heap.
+template <class Access, class Heap = RoutingHeap>
 class BasicDijkstra {
 public:
     explicit BasicDijkstra(Access access);
@@ -122,7 +124,7 @@ public:
 private:
     Access access_;
     SearchWorkspace ws_;
-    RoutingHeap heap_;
+    Heap heap_;
     std::vector<std::uint32_t> target_mark_;  // for one_to_many
     std::uint32_t mark_epoch_ = 0;
 };
@@ -130,6 +132,11 @@ private:
 using Dijkstra = BasicDijkstra<CsrOut>;
 using ReverseDijkstra = BasicDijkstra<CsrIn>;
 using AdjacencyDijkstra = BasicDijkstra<AdjOut>;
+// Priority-queue study variants (identical search code, different heap).
+using QuaternaryHeap = DaryHeap<HeapItem, 4, HeapItemLess>;
+using Dijkstra4Ary = BasicDijkstra<CsrOut, QuaternaryHeap>;
+using DijkstraRadix = BasicDijkstra<CsrOut, RadixHeap<HeapItem>>;
+using DijkstraStdHeap = BasicDijkstra<CsrOut, StdHeap<HeapItem, HeapItemLess>>;
 
 inline Dijkstra make_dijkstra(const Graph& g) { return Dijkstra(CsrOut{&g}); }
 inline ReverseDijkstra make_reverse_dijkstra(const Graph& g) { return ReverseDijkstra(CsrIn{&g}); }
