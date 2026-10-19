@@ -19,7 +19,7 @@ is hand-written from the committed run and makes only claims those numbers suppo
 | Dataset | Geofabrik asia/india/northern-zone 2026-10-17T20:20:51Z clip=[76.62,30.62,76.95,30.80] |
 | Graph | 142425 nodes, 298112 directed edges (largest SCC), v_max = 60 km/h |
 | Seed | 20261018 (routing/graph), 20261018 (dispatch) |
-| Run at | 2026-10-18T20:13:28Z |
+| Run at | 2026-10-19T18:12:14Z |
 
 Methodology:
 
@@ -33,54 +33,55 @@ Methodology:
 | Metric | CSR | Adjacency list | Adjacency / CSR |
 |---|---:|---:|---:|
 | Memory (forward topology + weights) | 2.82 MiB | 5.78 MiB | 2.05x |
-| Load from binary file (ms) | 31.1 | 34.9 | 1.12x |
-| Construction from edge list (ms) | 2.9 | 7.0 | 2.44x |
-| Sequential traversal of all edges (ms) | 0.321 | 0.378 | 1.18x |
-| Sequential traversal (ns/edge) | 1.08 | 1.27 | 1.18x |
-| Dijkstra query, median (us) | 4542 | 4851 | 1.07x |
-| Dijkstra query, p95 (us) | 8233 | 8935 | 1.09x |
+| Load from binary file (ms) | 29.0 | 33.7 | 1.16x |
+| Construction from edge list (ms) | 2.7 | 6.7 | 2.47x |
+| Sequential traversal of all edges (ms) | 0.310 | 0.364 | 1.17x |
+| Sequential traversal (ns/edge) | 1.04 | 1.22 | 1.17x |
+| Dijkstra query, median (us) | 4120 | 4369 | 1.06x |
+| Dijkstra query, p95 (us) | 7325 | 7749 | 1.06x |
 
-CSR load time includes building the reverse CSR (0.9 ms median) and full validation; the adjacency list is forward-only. Full `Graph` object (forward + reverse CSR, lengths, classes, coordinates, OSM ids): 11.45 MiB. Benchmark peak RSS: 69.70 MiB.
+CSR load time includes building the reverse CSR (0.8 ms median) and full validation; the adjacency list is forward-only. Full `Graph` object (forward + reverse CSR, lengths, classes, coordinates, OSM ids): 11.45 MiB. Benchmark peak RSS: 69.64 MiB.
 
 ## Routing algorithms (same 2000 seeded queries)
 
 | Algorithm | Median (us) | p95 (us) | p99 (us) | Mean (us) | Nodes settled (median) | Nodes settled (mean) | Memory (per-query workspace) | Median latency vs Dijkstra |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Dijkstra | 4753.3 | 9308.5 | 10057.6 | 4851.9 | 69047 | 70475 | 2257.4 KiB | 1.00x |
-| Bidirectional | 2584.0 | 7335.2 | 8289.4 | 2957.7 | 34915 | 39181 | 4498.8 KiB | 1.84x |
-| A* | 2813.9 | 9675.4 | 12786.4 | 3654.9 | 24742 | 31768 | 2257.4 KiB | 1.69x |
-| CCH | 403.1 | 599.5 | 810.2 | 386.4 | 826 | 749 | 4514.8 KiB | 11.79x |
+| Dijkstra | 3893.2 | 7569.9 | 8007.8 | 3973.3 | 69047 | 70475 | 2257.4 KiB | 1.00x |
+| Bidirectional | 2158.1 | 6106.2 | 6862.8 | 2461.9 | 34915 | 39181 | 4498.8 KiB | 1.80x |
+| A* | 1622.5 | 5697.7 | 7881.2 | 2143.6 | 24759 | 31783 | 3926.4 KiB | 2.40x |
+| CCH | 315.9 | 425.6 | 450.5 | 294.2 | 826 | 749 | 4514.8 KiB | 12.33x |
+| A* (haversine) | 2382.5 | 8015.8 | 11039.3 | 3090.8 | 24742 | 31768 | 2257.4 KiB | 1.63x |
 
 The shared graph (11.45 MiB) is excluded from per-algorithm memory. Bidirectional keeps two label sets and two heaps.
 
-CCH (P2) one-time preprocessing, measured separately from queries: total 159 ms (ordering 40 ms, contraction 14 ms, customization 99 ms); re-customization for new weights alone: 99 ms. Hierarchy: 1035192 upward edges (input: 161252 undirected node pairs), 34103870 lower triangles, max upward degree 277, 29.27 MiB. Ordering: recursive geometric nested dissection (median split of the wider axis, smaller boundary as separator). CCH memory in the table above is its per-query workspace; the hierarchy is additional.
+CCH (P2) one-time preprocessing, measured separately from queries: total 152 ms (ordering 39 ms, contraction 12 ms, customization 97 ms); re-customization for new weights alone: 97 ms. Hierarchy: 1035192 upward edges (input: 161252 undirected node pairs), 34103870 lower triangles, max upward degree 277, 29.27 MiB. Ordering: recursive geometric nested dissection (median split of the wider axis, smaller boundary as separator). CCH memory in the table above is its per-query workspace; the hierarchy is additional.
 
 By travel-time distance (Dijkstra cost):
 
 | Distance | Queries | Dijkstra median (us) | Bidirectional median (us) | A* median (us) | CCH median (us) | Dijkstra settled | Bidirectional settled | A* settled | CCH settled |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| < 5 min | 42 | 115.4 | 62.2 | 88.8 | 61.5 | 2131 | 898 | 758 | 117 |
-| 5-10 min | 174 | 667.0 | 242.2 | 379.2 | 140.8 | 10957 | 3846 | 3555 | 299 |
-| 10-20 min | 744 | 2870.8 | 1333.2 | 1515.0 | 325.0 | 42879 | 18418 | 13671 | 665 |
-| >= 20 min | 1040 | 7124.1 | 4243.8 | 5312.8 | 468.9 | 104604 | 56890 | 46384 | 949 |
+| < 5 min | 42 | 94.7 | 47.3 | 45.2 | 48.5 | 2131 | 898 | 763 | 117 |
+| 5-10 min | 174 | 541.9 | 200.0 | 202.9 | 113.6 | 10957 | 3846 | 3560 | 299 |
+| 10-20 min | 744 | 2343.1 | 1094.7 | 856.8 | 255.1 | 42879 | 18418 | 13686 | 665 |
+| >= 20 min | 1040 | 5938.3 | 3534.0 | 3163.1 | 372.5 | 104604 | 56890 | 46404 | 949 |
 
 ## Dispatch decision latency
 
 | Policy | Available couriers | Median (us) | p95 (us) | Mean (us) |
 |---|---:|---:|---:|---:|
-| nearest | 20 | 0.5 | 0.8 | 0.5 |
-| greedy_eta | 20 | 8759.1 | 9891.2 | 8817.6 |
-| nearest | 100 | 1.2 | 1.7 | 1.3 |
-| greedy_eta | 100 | 10057.1 | 11257.9 | 10149.8 |
-| nearest | 500 | 5.6 | 6.3 | 5.7 |
-| greedy_eta | 500 | 10849.4 | 12284.5 | 10893.9 |
+| nearest | 20 | 0.5 | 1.4 | 0.7 |
+| greedy_eta | 20 | 7747.2 | 8519.1 | 7778.9 |
+| nearest | 100 | 1.0 | 1.4 | 1.0 |
+| greedy_eta | 100 | 7949.6 | 8627.9 | 7983.7 |
+| nearest | 500 | 4.3 | 4.8 | 4.4 |
+| greedy_eta | 500 | 8002.3 | 8736.0 | 8057.2 |
 
 ## Dispatch policy comparison (experiment runner)
 
 Source: `experiments/results/policy_summary.md` (CSV/JSON alongside).
 
 
-Generated 2026-10-18T20:12:57Z on Apple M4 (AppleClang 21.0.0.21000334, Release). Dataset: Geofabrik asia/india/northern-zone 2026-10-17T20:20:51Z clip=[76.62,30.62,76.95,30.80] (142425 nodes). Routing: astar. Seeds: 1, 2, 3, 4, 5.
+Generated 2026-10-19T18:11:30Z on Apple M4 (AppleClang 21.0.0.21000334, Release). Dataset: Geofabrik asia/india/northern-zone 2026-10-17T20:20:51Z clip=[76.62,30.62,76.95,30.80] (142425 nodes). Routing: astar. Seeds: 1, 2, 3, 4, 5.
 
 Every (size, traffic, seed) cell uses one pre-generated scenario shared by all policies (identical orders, locations, preparation times, courier starts, traffic). Values are mean ± sample std. dev. across seeds. "Wins" counts seeds where the policy's value is strictly better (lower; higher for completed orders).
 
@@ -95,7 +96,7 @@ Every (size, traffic, seed) cell uses one pre-generated scenario shared by all p
 | avg wait for courier (min) | 0.00 ± 0.00 | 0.00 ± 0.00 | 0.00 ± 0.00 | 0/5 |
 | courier utilization | 0.35 ± 0.02 | 0.35 ± 0.02 | 0.00 ± 0.00 | 2/5 |
 | total distance (km) | 1231.95 ± 130.75 | 1268.26 ± 134.65 | 36.31 ± 21.78 | 0/5 |
-| assignment latency mean (us) | 0.62 ± 0.10 | 18450.08 ± 497.70 | 18449.45 ± 497.73 | 0/5 |
+| assignment latency mean (us) | 0.74 ± 0.16 | 13026.83 ± 636.86 | 13026.09 ± 636.72 | 0/5 |
 
 ### small (20 couriers, 100 orders), traffic=moderate
 
@@ -108,7 +109,7 @@ Every (size, traffic, seed) cell uses one pre-generated scenario shared by all p
 | avg wait for courier (min) | 0.00 ± 0.00 | 0.00 ± 0.00 | 0.00 ± 0.00 | 0/5 |
 | courier utilization | 0.37 ± 0.02 | 0.37 ± 0.03 | 0.00 ± 0.01 | 3/5 |
 | total distance (km) | 1242.39 ± 113.82 | 1261.64 ± 127.76 | 19.24 ± 32.34 | 2/5 |
-| assignment latency mean (us) | 0.74 ± 0.26 | 17565.27 ± 1002.83 | 17564.53 ± 1002.84 | 0/5 |
+| assignment latency mean (us) | 0.63 ± 0.07 | 12011.63 ± 754.23 | 12010.99 ± 754.26 | 0/5 |
 
 ### small (20 couriers, 100 orders), traffic=heavy
 
@@ -121,7 +122,7 @@ Every (size, traffic, seed) cell uses one pre-generated scenario shared by all p
 | avg wait for courier (min) | 0.29 ± 0.60 | 0.36 ± 0.78 | 0.07 ± 0.19 | 1/5 |
 | courier utilization | 0.46 ± 0.06 | 0.46 ± 0.06 | 0.00 ± 0.02 | 4/5 |
 | total distance (km) | 1383.16 ± 224.29 | 1403.35 ± 227.92 | 20.19 ± 65.64 | 2/5 |
-| assignment latency mean (us) | 0.65 ± 0.07 | 15549.97 ± 1715.44 | 15549.33 ± 1715.39 | 0/5 |
+| assignment latency mean (us) | 0.85 ± 0.44 | 11180.73 ± 1125.14 | 11179.88 ± 1124.96 | 0/5 |
 
 ### small_peak (20 couriers, 100 orders), traffic=free
 
@@ -134,7 +135,7 @@ Every (size, traffic, seed) cell uses one pre-generated scenario shared by all p
 | avg wait for courier (min) | 11.95 ± 6.18 | 12.42 ± 5.65 | 0.47 ± 1.40 | 2/5 |
 | courier utilization | 0.62 ± 0.05 | 0.62 ± 0.04 | 0.00 ± 0.02 | 3/5 |
 | total distance (km) | 1886.23 ± 137.28 | 1899.67 ± 81.92 | 13.44 ± 87.93 | 3/5 |
-| assignment latency mean (us) | 0.34 ± 0.05 | 11365.48 ± 750.77 | 11365.14 ± 750.80 | 0/5 |
+| assignment latency mean (us) | 0.55 ± 0.32 | 8446.68 ± 616.51 | 8446.13 ± 616.53 | 0/5 |
 
 ### small_peak (20 couriers, 100 orders), traffic=moderate
 
@@ -147,7 +148,7 @@ Every (size, traffic, seed) cell uses one pre-generated scenario shared by all p
 | avg wait for courier (min) | 16.58 ± 6.96 | 17.85 ± 6.39 | 1.27 ± 2.37 | 2/5 |
 | courier utilization | 0.68 ± 0.04 | 0.69 ± 0.05 | 0.01 ± 0.04 | 3/5 |
 | total distance (km) | 1851.54 ± 127.38 | 1887.40 ± 123.90 | 35.86 ± 121.38 | 3/5 |
-| assignment latency mean (us) | 0.35 ± 0.02 | 11129.68 ± 781.97 | 11129.33 ± 781.97 | 0/5 |
+| assignment latency mean (us) | 0.46 ± 0.03 | 8516.01 ± 685.42 | 8515.55 ± 685.45 | 0/5 |
 
 ### small_peak (20 couriers, 100 orders), traffic=heavy
 
@@ -160,7 +161,7 @@ Every (size, traffic, seed) cell uses one pre-generated scenario shared by all p
 | avg wait for courier (min) | 32.10 ± 6.71 | 32.92 ± 5.99 | 0.82 ± 2.47 | 2/5 |
 | courier utilization | 0.86 ± 0.04 | 0.87 ± 0.04 | 0.02 ± 0.02 | 1/5 |
 | total distance (km) | 1872.51 ± 105.35 | 1917.16 ± 83.53 | 44.65 ± 65.53 | 0/5 |
-| assignment latency mean (us) | 0.35 ± 0.04 | 11250.87 ± 875.64 | 11250.52 ± 875.65 | 0/5 |
+| assignment latency mean (us) | 0.46 ± 0.03 | 8671.36 ± 760.34 | 8670.91 ± 760.35 | 0/5 |
 
 ### medium (100 couriers, 1000 orders), traffic=free
 
@@ -173,7 +174,7 @@ Every (size, traffic, seed) cell uses one pre-generated scenario shared by all p
 | avg wait for courier (min) | 0.00 ± 0.00 | 0.00 ± 0.00 | 0.00 ± 0.00 | 0/5 |
 | courier utilization | 0.40 ± 0.00 | 0.40 ± 0.00 | -0.00 ± 0.00 | 5/5 |
 | total distance (km) | 9571.71 ± 240.72 | 9494.33 ± 260.43 | -77.38 ± 39.17 | 5/5 |
-| assignment latency mean (us) | 2.41 ± 0.10 | 18811.54 ± 75.38 | 18809.13 ± 75.42 | 0/5 |
+| assignment latency mean (us) | 2.18 ± 0.06 | 17500.07 ± 83.30 | 17497.89 ± 83.32 | 0/5 |
 
 ### medium (100 couriers, 1000 orders), traffic=moderate
 
@@ -186,7 +187,7 @@ Every (size, traffic, seed) cell uses one pre-generated scenario shared by all p
 | avg wait for courier (min) | 0.00 ± 0.00 | 0.00 ± 0.00 | 0.00 ± 0.00 | 0/5 |
 | courier utilization | 0.42 ± 0.00 | 0.42 ± 0.00 | -0.00 ± 0.00 | 5/5 |
 | total distance (km) | 9486.57 ± 255.54 | 9454.28 ± 207.17 | -32.29 ± 68.71 | 3/5 |
-| assignment latency mean (us) | 2.70 ± 0.53 | 18672.60 ± 129.90 | 18669.90 ± 130.37 | 0/5 |
+| assignment latency mean (us) | 2.45 ± 0.51 | 17311.94 ± 119.25 | 17309.49 ± 119.26 | 0/5 |
 
 ### medium (100 couriers, 1000 orders), traffic=heavy
 
@@ -199,7 +200,7 @@ Every (size, traffic, seed) cell uses one pre-generated scenario shared by all p
 | avg wait for courier (min) | 0.00 ± 0.00 | 0.00 ± 0.00 | 0.00 ± 0.00 | 0/5 |
 | courier utilization | 0.47 ± 0.01 | 0.47 ± 0.01 | -0.00 ± 0.00 | 4/5 |
 | total distance (km) | 9561.95 ± 250.57 | 9544.32 ± 281.03 | -17.63 ± 85.63 | 2/5 |
-| assignment latency mean (us) | 2.39 ± 0.11 | 18609.30 ± 179.62 | 18606.91 ± 179.69 | 0/5 |
+| assignment latency mean (us) | 2.33 ± 0.14 | 17508.50 ± 153.69 | 17506.17 ± 153.64 | 0/5 |
 
 ### medium_peak (100 couriers, 1000 orders), traffic=free
 
@@ -212,7 +213,7 @@ Every (size, traffic, seed) cell uses one pre-generated scenario shared by all p
 | avg wait for courier (min) | 24.65 ± 2.77 | 23.22 ± 3.01 | -1.43 ± 1.18 | 4/5 |
 | courier utilization | 0.85 ± 0.02 | 0.84 ± 0.02 | -0.01 ± 0.01 | 4/5 |
 | total distance (km) | 19882.55 ± 494.52 | 19577.81 ± 568.22 | -304.74 ± 217.96 | 4/5 |
-| assignment latency mean (us) | 0.48 ± 0.05 | 11354.26 ± 382.54 | 11353.78 ± 382.50 | 0/5 |
+| assignment latency mean (us) | 0.61 ± 0.08 | 10602.76 ± 448.99 | 10602.15 ± 448.92 | 0/5 |
 
 ### medium_peak (100 couriers, 1000 orders), traffic=moderate
 
@@ -225,7 +226,7 @@ Every (size, traffic, seed) cell uses one pre-generated scenario shared by all p
 | avg wait for courier (min) | 37.33 ± 2.86 | 37.66 ± 3.98 | 0.33 ± 1.40 | 3/5 |
 | courier utilization | 0.93 ± 0.01 | 0.93 ± 0.01 | 0.00 ± 0.00 | 2/5 |
 | total distance (km) | 19497.89 ± 361.44 | 19641.27 ± 488.22 | 143.38 ± 233.03 | 1/5 |
-| assignment latency mean (us) | 0.47 ± 0.06 | 11411.18 ± 502.88 | 11410.71 ± 502.83 | 0/5 |
+| assignment latency mean (us) | 0.61 ± 0.04 | 10705.76 ± 447.91 | 10705.16 ± 447.88 | 0/5 |
 
 ### medium_peak (100 couriers, 1000 orders), traffic=heavy
 
@@ -238,7 +239,7 @@ Every (size, traffic, seed) cell uses one pre-generated scenario shared by all p
 | avg wait for courier (min) | 62.39 ± 2.33 | 61.97 ± 2.73 | -0.43 ± 0.84 | 2/5 |
 | courier utilization | 0.97 ± 0.00 | 0.97 ± 0.00 | -0.00 ± 0.00 | 2/5 |
 | total distance (km) | 16542.52 ± 154.79 | 16524.09 ± 139.74 | -18.43 ± 149.42 | 2/5 |
-| assignment latency mean (us) | 0.51 ± 0.06 | 11301.40 ± 328.41 | 11300.90 ± 328.38 | 0/5 |
+| assignment latency mean (us) | 0.63 ± 0.05 | 10499.24 ± 319.45 | 10498.61 ± 319.43 | 0/5 |
 
 Courier utilization = busy time / (couriers × simulated horizon); lower is not automatically better (it also falls when fewer orders are completed). Assignment latency is wall-clock time and is the only metric that varies between identical runs.
 
@@ -246,75 +247,65 @@ Courier utilization = busy time / (couriers × simulated horizon); lower is not 
 
 ## Analysis (hand-written; numbers quoted from the committed run above)
 
-The numbers below come from the run recorded in the generated block (2026-10-18T20:13:28Z; Apple M4, AppleClang 21,
-`-O3`). Absolute latencies vary between runs: an earlier run on the same machine was about 20% faster
-across the board. The ratios between algorithms stayed stable, so read the ratios.
+The numbers below come from the run recorded in the generated block (2026-10-19T18:12Z; Apple M4,
+AppleClang 21, `-O3`). Absolute latencies vary by about ±20% between runs on this machine; the
+ratios between algorithms have been stable across runs, so read the ratios.
 
 ### Graph representation
 
 * **Memory.** The CSR forward topology plus weights takes 2.82 MiB, against 5.78 MiB for the
   vector-of-vectors adjacency list (2.05×). The difference is the 24-byte `std::vector` header per
   node plus allocator rounding. CSR's per-node cost is a single 4-byte offset.
-* **Speed.** CSR is faster on every measured operation, but by small factors on the hot paths: about
-  1.1× for sequential traversal and for Dijkstra queries (see the table). At this graph size (142k
-  nodes), the per-node vectors are allocated in order and stay largely contiguous, so the locality gap
-  is smaller than the textbook argument suggests. The construction advantage is measured on an edge
-  list that is already sorted, the best case for `std::sort`.
-* **Load.** CSR loads faster even though it also builds the reverse CSR and runs full validation. The
-  adjacency list pays for about 142k small allocations.
+* **Speed.** CSR is faster on every measured operation, but by small factors on the hot paths:
+  1.17× for sequential traversal and 1.06× for Dijkstra queries. At this graph size (142k nodes)
+  both structures stay largely cache-resident; the layout study in phase 2 shows what changes when
+  the working set no longer fits. The 2.47× construction advantage is measured on an edge list that
+  is already sorted, the best case for `std::sort`.
+* **Load.** CSR loads 1.16× faster even though it also builds the reverse CSR and runs full
+  validation. The adjacency list pays for about 142k small allocations.
 
 ### Routing algorithms
 
-* All four algorithms (Dijkstra, Bidirectional, A*, CCH) returned identical costs on the
-  10,000-query agreement suite. Every reconstructed or unpacked path summed to its reported cost.
-  The benchmark itself aborts on any cost mismatch.
-* **Bidirectional Dijkstra** is 1.84× faster than Dijkstra at the median, and it also improves p95
-  and p99. It settles about half the nodes (34.9k vs 69.0k median). The cost is twice the per-query
-  workspace (4.4 MiB vs 2.2 MiB).
-* **A\*** settles the fewest nodes of the online algorithms (24.7k median, 64% fewer than Dijkstra).
-  Its median is 1.69× better than Dijkstra but slower than bidirectional. Its **tail is worse than
-  plain Dijkstra** (p95 9.7 ms vs 9.3 ms, p99 12.8 ms vs 10.1 ms in this run; the same ordering held
-  in the earlier run). Each push computes a haversine (sin, cos, asin, sqrt). On long queries that
-  extra work per node outweighs the nodes saved. The heuristic is weak by construction: v_max is
-  60 km/h (trunk), while most edges are residential at 20 km/h, so h underestimates most remaining
-  costs by about 3×.
-* By distance, A* and bidirectional both gain most on short queries and least on long ones (see the
-  bucket table).
-* Not tried yet, and each would need its own benchmark: caching `cos(lat)` per node or precomputing
-  h per query, a tighter v_max per region, and a bidirectional A*. None is claimed to help until
-  measured.
+* All algorithms returned identical costs on the 10,000-query agreement suite and on all 2,000
+  benchmark queries. Every reconstructed or unpacked path summed to its reported cost, and the
+  benchmark aborts on any cost mismatch.
+* **A\*** (chord heuristic, phase 2) has the best median of the online algorithms: 2.40× Dijkstra
+  (1.62 ms). It settles the fewest nodes (24.8k median, 64% fewer than Dijkstra). Its p99 is now
+  slightly better than Dijkstra's (7.88 vs 8.01 ms). The old haversine heuristic, kept as a row,
+  is 1.47× slower at the median, and its p99 of 11.0 ms was worse than Dijkstra's: the trig per
+  push was the cost, not the search. The bound remains loose by construction: v_max is 60 km/h
+  (trunk), while most edges are residential at 20 km/h.
+* **Bidirectional Dijkstra** is 1.80× faster than Dijkstra at the median, has the lowest p99 of
+  the online algorithms (6.86 ms; A* has the lowest p95 at 5.70 ms), and settles about half the nodes. It needs twice the per-query
+  workspace.
+* **CCH** answers in a median of 316 µs (12.3× Dijkstra) with a p99 of 451 µs, settling about 830
+  nodes. The advantage grows with trip length: about 16× over Dijkstra for trips of 20 min or more,
+  and about 2× under 5 min. Preprocessing (152 ms) pays for itself after about 40 queries, and at
+  17M nodes the speedup reaches 165× (phase 2, scale).
+* By distance, A* and Bidirectional gain most on short trips and least on long ones (see the bucket
+  table).
 
 ### CCH (P2 stretch goal): kept, passed the kill-switch
 
 * **Correctness gates (PRD §11).** CCH is exact on all hand-built fixtures (all pairs), on random
-  directed graphs with unreachable pairs, after re-customization with heavy-traffic weights, and on
-  **10,000** Tricity queries. The PRD gate is ≥ 100. These checks run in ctest and as verify.sh
-  AC-17.
-* **Implementation.** The node order comes from my own recursive geometric nested dissection, not
-  the external `ndmetis` the PRD suggests; this avoids a METIS dependency. Then come chordal fill-in
-  via elimination-tree propagation, basic customization by lower-triangle enumeration, a pruned
-  bidirectional upward Dijkstra and iterative shortcut unpacking. Perfect, partial and parallel
-  customization are excluded, as scoped.
-* **Cost/benefit.** One-time preprocessing takes about 160 ms (ordering about 40 ms, contraction
-  about 15 ms, customization about 100 ms). Re-customization for new weights, such as a traffic
-  scenario, takes about 100 ms alone. The hierarchy has 1.04 M upward edges, against 161k undirected
-  input pairs, which is 6.4× fill-in, and takes 29 MiB. Queries settle about 830 nodes at the median,
-  against 69k for Dijkstra. Median latency is **11.8× lower than Dijkstra and about 6.4× lower than
-  bidirectional**. The advantage grows with distance: about 15× over Dijkstra for queries of 20 min
-  or more, and only about 1.9× under 5 min, where search spaces are small anyway. Preprocessing pays
-  for itself after about 40 Dijkstra-equivalent queries.
-* **Caveat.** The order is a simple coordinate bisection. A METIS/inertial-flow order would likely
-  give less fill-in and faster customization. That is untested, so no number is claimed.
+  directed graphs with unreachable pairs, after re-customization with heavy-traffic weights, on
+  **10,000** Tricity queries (ctest and verify.sh AC-17), and on 100 queries at 17.2M nodes.
+* **Implementation.** The node order comes from my own recursive geometric nested dissection; this
+  avoids a METIS dependency. Then come chordal fill-in via elimination-tree propagation, basic
+  customization by lower-triangle enumeration, a pruned bidirectional upward Dijkstra and iterative
+  shortcut unpacking. The hierarchy is an immutable shared object, so per-thread copies share it.
+* **Cost/benefit on Tricity.** The hierarchy has 1.04M upward edges, against 161k undirected input
+  pairs: 6.4× fill-in, 29 MiB. Re-customization for new weights alone takes 97 ms.
+* **Caveat.** The order is a simple coordinate bisection. A METIS or inertial-flow order would likely
+  give less fill-in. That is untested, so no number is claimed.
 
 ### Dispatch policies
 
-* **Decision cost.** Nearest is effectively free: a few µs, linear in courier count. Greedy ETA
-  costs about 9–11 ms per decision in this run and grows only mildly from 20 to 500 couriers. Its reverse
-  Dijkstra must settle every available courier, and with couriers spread uniformly over the city
-  that means most of the graph whatever the count. This dominates simulation wall time. Pruning the
-  reverse search once no unsettled courier can beat the current best ETA would be an exact
-  optimization (PRD §19 "decision-aware" idea). Using CCH for the one-to-many step is another
-  option. Neither is implemented and no benefit is claimed.
+* **Decision cost.** Nearest is effectively free: 0.5–4.3 µs, linear in courier count. The
+  baseline Greedy ETA costs about 7.7–8.0 ms per decision, almost independent of courier count: its
+  reverse Dijkstra settles most of the city whatever the count. The exact decision-aware strategies
+  of phase 2 cut this 7–16× in full simulations, with identical decisions
+  ([docs/RESEARCH.md](docs/RESEARCH.md)).
 * **Outcomes under normal load** (utilization 0.35–0.46): the policies are nearly indistinguishable.
   Small scenarios: Greedy ETA is marginally worse on average delivery (+0.02 to +0.19 min) and
   drives slightly more. Medium scenarios: Greedy ETA is marginally better, by 0.10–0.15 min, winning
