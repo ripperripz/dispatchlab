@@ -110,7 +110,17 @@
   const cssVar = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
   function algoTag(a) {
-    return h('span.algo', h('span.swatch', { style: { background: a.color } }), a.label);
+    return h('span.algo', h('span.swatch', { style: a.variant ? { background: 'transparent', boxShadow: `inset 0 0 0 1.5px ${a.color}` } : { background: a.color } }), a.label);
+  }
+
+  // Benchmark rows name algorithms ("A*", "A* (haversine)"); variants share the
+  // base algorithm's hue, keep their own label, and get a hollow swatch.
+  const BENCH_IDS = { Dijkstra: 'dijkstra', Bidirectional: 'bidirectional', 'A*': 'astar', CCH: 'cch' };
+  function algoFor(name) {
+    const exact = ALGOS.find(a => a.id === BENCH_IDS[name]);
+    if (exact) return exact;
+    const base = ALGOS.find(a => name.startsWith(a.label + ' ')) || { id: 'other', color: 'var(--text-3)' };
+    return { id: base.id, label: name, color: base.color, variant: true };
   }
 
   let toastTimer = 0;
@@ -201,5 +211,5 @@
     },
   };
 
-  Object.assign(DL, { h, append, icon, fmt, ALGOS, POLICIES, cssVar, algoTag, toast, copy, command, segmented, field, numberInput, readInt, errorCallout, setLoading, theme });
+  Object.assign(DL, { h, append, icon, fmt, ALGOS, POLICIES, cssVar, algoTag, algoFor, toast, copy, command, segmented, field, numberInput, readInt, errorCallout, setLoading, theme });
 })();

@@ -122,18 +122,17 @@
         if (rb) {
           const base = rb.algorithms[0].median_us;
           const maxSettled = Math.max(...rb.algorithms.map(a => a.settled_median));
-          const byName = { Dijkstra: 'dijkstra', Bidirectional: 'bidirectional', 'A*': 'astar', CCH: 'cch' };
           routingSection.appendChild(h('div.panel', h('div.table-wrap', h('table.data',
             h('thead', h('tr', h('th', 'Algorithm'), h('th.r', 'Median'), h('th.r', 'p95'), h('th.r', 'p99'), h('th', 'Nodes settled (median)'), h('th.r', 'vs Dijkstra'))),
             h('tbody', rb.algorithms.map(a => {
-              const meta = DL.ALGOS.find(x => x.id === byName[a.name]) || DL.ALGOS[0];
+              const meta = DL.algoFor(a.name);
               return h('tr',
                 h('td', DL.algoTag(meta)),
                 h('td.r', fmt.us(a.median_us)), h('td.r', fmt.us(a.p95_us)), h('td.r', fmt.us(a.p99_us)),
                 h('td', h('div.bar-cell', h('div.bar-track', h('div.bar-fill', { style: { width: `${(a.settled_median / maxSettled) * 100}%`, background: meta.color } })), h('span.num', { style: { minWidth: '64px', textAlign: 'right' } }, fmt.int(a.settled_median)))),
                 h('td.r', `${(base / a.median_us).toFixed(1)}×`));
             })))),
-            h('div.panel-foot', `Measured ${rb.environment.timestamp_utc.replace('T', ' ').replace('Z', ' UTC')} on ${rb.environment.cpu}, ${rb.environment.compiler}, ${rb.environment.build_type}. All four algorithms return identical costs on every query.`)));
+            h('div.panel-foot', `Measured ${rb.environment.timestamp_utc.replace('T', ' ').replace('Z', ' UTC')} on ${rb.environment.cpu}, ${rb.environment.compiler}, ${rb.environment.build_type}. Every algorithm returns identical costs on every query.`)));
         }
 
         // Dispatch summary from the experiment runner.
@@ -175,7 +174,7 @@
   DL.policySummaryTable = function (ex) {
     const cells = DL.policyCells(ex);
     return h('div.panel', h('div.table-wrap', h('table.data.nowrap',
-      h('thead', h('tr', h('th', 'Scenario'), h('th', 'Traffic'), h('th.r', 'Nearest avg'), h('th.r', 'Greedy ETA avg'), h('th.r', 'Δ (paired)'), h('th.r', 'ETA better'), h('th.r', 'Undelivered N / E'))),
+      h('thead', h('tr', h('th', 'Scenario'), h('th', 'Traffic'), h('th.r', 'Nearest avg'), h('th.r', 'Greedy ETA avg'), h('th.r', 'Δ (paired)'), h('th.r', 'ETA better'), h('th.r', { title: 'Mean undelivered orders at the end of the run: Nearest / Greedy ETA' }, 'Undelivered (N / ETA)'))),
       h('tbody', cells.map(c => h('tr',
         h('td', h('span', { style: { fontWeight: 500 } }, c.size.replace('_', ' ')), h('span.cell-sub', `${c.couriers} couriers · ${fmt.int(c.orders)} orders`)),
         h('td', c.traffic),

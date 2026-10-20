@@ -607,6 +607,12 @@ std::string build_results_bundle(const std::string& root) {
     w.key("routing").raw(raw("benchmarks/results/routing.json"));
     w.key("dispatch").raw(raw("benchmarks/results/dispatch.json"));
     w.end_object();
+    // Greedy ETA candidate-evaluation study (docs/RESEARCH.md §8).
+    w.key("eta").begin_object();
+    w.key("tricity_uniform").raw(raw("benchmarks/results/eta_v2_tricity_uniform.json"));
+    w.key("tricity_clustered").raw(raw("benchmarks/results/eta_v2_tricity_clustered.json"));
+    w.key("northern").raw(raw("benchmarks/results/eta_v2_northern.json"));
+    w.end_object();
     w.key("experiments").begin_object();
     w.key("verify").raw(raw("experiments/results/policy_comparison.json"));
     w.key("full").raw(raw("experiments/results/full/policy_comparison.json"));

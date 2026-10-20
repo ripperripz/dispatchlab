@@ -329,7 +329,7 @@
           const el = h('div.mini', { role: 'button', tabindex: 0, 'aria-label': `Show ${algo.label} search space`, 'aria-pressed': String(S.selected === algo.id) },
             c, h('div.mini-label', h('span.algo', h('span.swatch', { style: { background: algo.color } }), algo.label), stat));
           strip.appendChild(el);
-          const mm = new DL.MapView(c, net, { interactive: false, padding: 8, roadScale: 0.8 });
+          const mm = new DL.MapView(c, net, { interactive: false, padding: 8, insetTop: 30, roadScale: 0.8 });
           mm.addOverlay((ctx, p, dpr) => {
             drawSearch(ctx, p, dpr, algo.id, ease(progress), false);
             drawPath(ctx, p, dpr, 1.6);

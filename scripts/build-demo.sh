@@ -20,7 +20,7 @@ OUT=dist/demo
 rm -rf "$OUT"
 mkdir -p "$OUT/views" "$OUT/fonts" "$OUT/data"
 "$DL" export-demo "$GRAPH" --out-dir "$OUT/data"
-cp viewer/style.css viewer/core.js viewer/ui.js viewer/api.js viewer/map.js viewer/charts.js viewer/app.js "$OUT/"
+cp viewer/favicon.svg viewer/style.css viewer/core.js viewer/ui.js viewer/api.js viewer/map.js viewer/charts.js viewer/app.js "$OUT/"
 cp viewer/views/*.js "$OUT/views/"
 cp viewer/fonts/*.woff2 viewer/fonts/LICENSE-Geist.txt "$OUT/fonts/"
 

@@ -88,7 +88,7 @@
           h('div.field', { style: { marginTop: '12px' } }, h('span.label', 'Traffic'), trafficCtl),
           h('div.field', { style: { marginTop: '12px' } }, h('span.label', 'Dispatch policy'), policyCtl),
           h('div', { style: { marginTop: '14px' } }, runBtn),
-          DL.api.demo ? h('p.faint', { style: { fontSize: '12px', marginTop: '8px' } }, 'Recorded demo: six engine runs, one per policy and traffic level. The other inputs are fixed.') : null,
+          ...(DL.api.demo ? [h('p.faint', { style: { fontSize: '12px', marginTop: '8px' } }, 'Recorded demo: six engine runs, one per policy and traffic level. The other inputs are fixed.')] : []),
           runError);
         DL.demoLock(inputs.couriers, inputs.orders, inputs.window, inputs.seed);
         runBtn.addEventListener('click', run);

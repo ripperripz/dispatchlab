@@ -96,6 +96,15 @@ Last updated: 2026-10-19. Re-read this file, then `docs/PRD.md`, before resuming
 * Published as a private claude.ai artifact for a classroom demo. Tested locally under headless Chrome
   (all six views). Live, offline and AC-13 behaviour is unchanged.
 
+## Console UI pass (2026-10-21)
+
+* Benchmarks gains "Greedy ETA: evaluating candidates": the v2 strategy study (uniform and clustered
+  demand), the identical-decision evidence computed from the final-state hashes, and the 17.2M-node
+  scale check. `/api/results` now carries `eta` (eta_v2_*.json).
+* Fixed "A* (haversine)" showing as a second Dijkstra (shared `DL.algoFor`), a stray "null" under
+  Run simulation, minimap labels covering the route, correctness cards and rows breaking on phones,
+  and the missing favicon. `verify.sh`: all checks pass.
+
 ## In progress
 
 * Nothing in progress. All mandatory AC and the optional AC-17 (CCH) pass in `verify.sh` (exit 0,
