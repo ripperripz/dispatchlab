@@ -97,7 +97,9 @@ private:
 //   Hybrid  - Pruned under a node budget; if the budget runs out before the
 //             decision is proven, continue with Bounded, keeping the incumbent.
 //             Size-independent (no graph-size constant); overhead <= the budget.
-enum class EtaStrategy { Full, Pruned, Cch, Bounded, Adaptive, Rphast, Hybrid };
+//   Auto    - Pruned when couriers are dense (same rule as Adaptive), Rphast
+//             otherwise: the design the v2 measurements point to.
+enum class EtaStrategy { Full, Pruned, Cch, Bounded, Adaptive, Rphast, Hybrid, Auto };
 inline constexpr double kAdaptiveNodesPerCourier = 20000.0;  // tuned on Tricity (docs/RESEARCH.md)
 inline constexpr std::uint64_t kHybridPrunedBudget = 8000;    // nodes settled before switching
 

@@ -94,7 +94,8 @@ TEST_CASE("dispatch: greedy eta only considers available couriers") {
 
 namespace {
 const char* kEtaVariants[] = {"greedy_eta", "greedy_eta_pruned", "greedy_eta_cch", "greedy_eta_bounded",
-                              "greedy_eta_adaptive", "greedy_eta_rphast", "greedy_eta_hybrid"};
+                              "greedy_eta_adaptive", "greedy_eta_rphast", "greedy_eta_hybrid",
+                              "greedy_eta_auto"};
 }
 
 TEST_CASE("dispatch: greedy eta strategies make identical decisions on random requests") {
@@ -103,7 +104,7 @@ TEST_CASE("dispatch: greedy eta strategies make identical decisions on random re
         CCH cch(g);
         GreedyEtaPolicy full(g, EtaStrategy::Full), pruned(g, EtaStrategy::Pruned), viacch(g, EtaStrategy::Cch, &cch),
             bounded(g, EtaStrategy::Bounded, &cch), adaptive(g, EtaStrategy::Adaptive, &cch),
-            rphast(g, EtaStrategy::Rphast, &cch), hybrid(g, EtaStrategy::Hybrid, &cch);
+            rphast(g, EtaStrategy::Rphast, &cch), hybrid(g, EtaStrategy::Hybrid, &cch), autos(g, EtaStrategy::Auto, &cch);
         Rng rng(seed);
         for (int i = 0; i < 300; ++i) {
             const auto r = static_cast<NodeId>(rng.below(g.num_nodes()));
@@ -120,11 +121,11 @@ TEST_CASE("dispatch: greedy eta strategies make identical decisions on random re
                 av.push_back({static_cast<std::uint32_t>(j * 3 + 1), loc});
             }
             DispatchRequest req{0, r, d, now, ready};
-            std::uint32_t chosen[7];
-            SimTime eta[7];
-            bool ok[7];
-            GreedyEtaPolicy* pols[7] = {&full, &pruned, &viacch, &bounded, &adaptive, &rphast, &hybrid};
-            for (int p = 0; p < 7; ++p) {
+            std::uint32_t chosen[8];
+            SimTime eta[8];
+            bool ok[8];
+            GreedyEtaPolicy* pols[8] = {&full, &pruned, &viacch, &bounded, &adaptive, &rphast, &hybrid, &autos};
+            for (int p = 0; p < 8; ++p) {
                 try {
                     chosen[p] = pols[p]->choose(req, av);
                     eta[p] = pols[p]->last_decision().eta;
@@ -133,7 +134,7 @@ TEST_CASE("dispatch: greedy eta strategies make identical decisions on random re
                     ok[p] = false;  // no courier can reach the restaurant
                 }
             }
-            for (int p = 1; p < 7; ++p) {
+            for (int p = 1; p < 8; ++p) {
                 REQUIRE(ok[p] == ok[0]);
                 if (ok[0]) {
                     REQUIRE(chosen[p] == chosen[0]);

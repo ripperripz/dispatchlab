@@ -12,10 +12,12 @@ GreedyEtaPolicy::GreedyEtaPolicy(const Graph& g, EtaStrategy strategy, const CCH
       strategy_(strategy),
       to_restaurant_(make_reverse_dijkstra(g)),
       restaurant_to_customer_(g),
-      ws_(strategy == EtaStrategy::Pruned || strategy == EtaStrategy::Adaptive || strategy == EtaStrategy::Hybrid
+      ws_(strategy == EtaStrategy::Pruned || strategy == EtaStrategy::Adaptive || strategy == EtaStrategy::Hybrid ||
+                  strategy == EtaStrategy::Auto
               ? g.num_nodes()
               : 0) {
-    if (strategy_ == EtaStrategy::Pruned || strategy_ == EtaStrategy::Adaptive || strategy_ == EtaStrategy::Hybrid) {
+    if (strategy_ == EtaStrategy::Pruned || strategy_ == EtaStrategy::Adaptive || strategy_ == EtaStrategy::Hybrid ||
+        strategy_ == EtaStrategy::Auto) {
         node_stamp_.assign(g.num_nodes(), 0);
         node_first_.assign(g.num_nodes(), 0);
     }
@@ -33,6 +35,7 @@ std::string_view GreedyEtaPolicy::name() const {
         case EtaStrategy::Adaptive: return "greedy_eta_adaptive";
         case EtaStrategy::Rphast: return "greedy_eta_rphast";
         case EtaStrategy::Hybrid: return "greedy_eta_hybrid";
+        case EtaStrategy::Auto: return "greedy_eta_auto";
     }
     return "greedy_eta";
 }
@@ -220,6 +223,13 @@ std::uint32_t GreedyEtaPolicy::choose(const DispatchRequest& req, const std::vec
             }
             break;
         case EtaStrategy::Rphast: choose_rphast(req, available, b); break;
+        case EtaStrategy::Auto:
+            if (static_cast<double>(g_.num_nodes()) / static_cast<double>(available.size()) < kAdaptiveNodesPerCourier) {
+                choose_pruned(req, available, b);
+            } else {
+                choose_rphast(req, available, b);
+            }
+            break;
         case EtaStrategy::Hybrid:
             // The incumbent found by the budgeted search (if any) is a real courier
             // with an exact T, so Bounded may start from it and stays exact.

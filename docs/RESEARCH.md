@@ -280,3 +280,39 @@ Raw data: `benchmarks/results/eta_v2_tricity_uniform.json`, `eta_v2_tricity_clus
 - **A better design suggested by the data** (not implemented): run `pruned` when free couriers
   are dense, and `rphast`, not `bounded`, when they are sparse, since `rphast` is the fastest exact
   strategy in most sparse cells.
+
+
+## 9. v3: `auto` = pruned when dense, RPHAST when sparse
+
+The v2 data suggested replacing `bounded` with `rphast` as the sparse-case fallback. `auto` does
+exactly that, with the same n / k rule as `adaptive`. Raw data: `eta_v3_tricity_uniform.json`,
+`eta_v3_tricity_clustered.json` and `eta_v3_northern.json`.
+
+| Tricity, mean ms per decision | uniform: rphast / adaptive / **auto** | clustered: rphast / adaptive / **auto** |
+|---|---|---|
+| small | 0.76 / 0.99 / **0.93** | 0.63 / 0.64 / **0.60** |
+| small peak | 0.64 / 0.71 / **0.69** | 0.58 / 0.57 / **0.56** |
+| medium | 1.01 / 0.68 / **0.68** | 0.74 / 0.71 / **0.69** |
+| medium peak | 0.67 / 0.70 / **0.68** | 0.64 / 0.67 / **0.65** |
+| large | 1.30 / 0.51 / **0.51** | 0.86 / 0.71 / **0.65** |
+| large peak | 0.69 / 0.65 / **0.63** | 0.69 / 0.63 / **0.62** |
+
+| 17.2M nodes, micro median ms (food not ready) | pruned | rphast | adaptive | auto |
+|---|---:|---:|---:|---:|
+| 20 couriers | 68.7 | 12.2 | **5.01** | 10.6 |
+| 100 couriers | 11.7 | 18.3 | **4.63** | 19.6 |
+| 500 couriers | 4.28 | 28.2 | **3.74** | 26.6 |
+
+- **On Tricity, `auto` is the most consistent strategy.** It is within 0.92–1.08× of the better of
+  `rphast` and `adaptive` in 11 of 12 cells; the exception is uniform-small, at 1.23× of
+  `rphast`.
+- **At 17M nodes, `auto` is 2–7× slower than `adaptive`.** The n / k rule sends every cell to the
+  sparse branch there. RPHAST's sweep over the couriers' upward spaces grows with graph size
+  (12k → 80k nodes), while `bounded` needs only 2–6 exact CCH queries.
+- **The right sparse-case fallback depends on scale:** `rphast` on a city graph, `bounded` on a
+  region-sized one. Making that choice principled is the most useful next step. For example, compare
+  the selection size (computable per decision) with the bounded strategy's expected exact
+  queries.
+- **Methodology note.** The first v3 run was invalidated by the laptop sleeping mid-run (wall
+  times of about 900 s with normal p95 latencies). The affected Tricity runs were repeated under
+  `caffeinate`, and the earlier result files were checked for the same signature, with none found.

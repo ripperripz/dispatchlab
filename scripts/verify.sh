@@ -243,7 +243,7 @@ record "AC-15 Dispatch policies compared fairly" $rc
 log "RESEARCH: decision-aware Greedy ETA strategies make identical decisions (docs/RESEARCH.md)"
 rc=0
 run "$OUT/eta.log" "$BUILD/benchmark_eta" "$GRAPH" --samples 40 --seeds 2 --couriers 20,100 \
-    --sizes small,small_peak --strategies full,pruned,cch,bounded,adaptive || rc=1
+    --sizes small,small_peak --strategies full,pruned,cch,bounded,adaptive,rphast,hybrid,auto || rc=1
 grep -q "EXACTNESS_OK" "$OUT/eta.log" || rc=1
 unit research_eta "dispatch: greedy eta strategies*" || rc=1
 record "RESEARCH exact decision-aware dispatch (identical choices and hashes)" $rc

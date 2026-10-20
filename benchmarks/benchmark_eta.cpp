@@ -40,6 +40,7 @@ EtaStrategy parse_strategy(const std::string& s) {
     if (s == "adaptive") return EtaStrategy::Adaptive;
     if (s == "rphast") return EtaStrategy::Rphast;
     if (s == "hybrid") return EtaStrategy::Hybrid;
+    if (s == "auto") return EtaStrategy::Auto;
     throw std::invalid_argument("unknown strategy " + s);
 }
 
