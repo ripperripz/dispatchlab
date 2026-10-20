@@ -87,7 +87,7 @@ void usage() {
         "      Shortest travel time between two compact node ids.\n"
         "  gen-scenario <graph> <out.json> [--couriers N] [--orders N] [--restaurants N] [--window-min M]\n"
         "               [--prep-min M] [--prep-max M] [--drain-min M] [--max-delivery-km K]\n"
-        "               [--traffic free|moderate|heavy] [--seed S]\n"
+        "               [--traffic free|moderate|heavy] [--seed S] [--demand uniform|clustered]\n"
         "      Generate a reproducible workload once (shared by all policies).\n"
         "  simulate <graph> <scenario.json> [--policy nearest|greedy_eta] [--algo astar] [--log out.jsonl]\n"
         "           [--summary out.json] [--no-paths]\n"
@@ -215,6 +215,7 @@ int cmd_gen_scenario(const Args& a) {
     p.max_delivery_km = std::stod(a.get("max-delivery-km", "6"));
     p.traffic = std::string(traffic_name(parse_traffic(a.get("traffic", "free"))));
     p.seed = a.num("seed", 1);
+    p.demand = a.get("demand", "uniform");
     Scenario sc = generate_scenario(g, p);
     save_scenario(sc, a.pos(1, "output scenario"));
     std::printf("scenario: couriers=%zu orders=%zu restaurants=%zu traffic=%s seed=%llu end_time_min=%lld "

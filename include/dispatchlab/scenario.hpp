@@ -20,6 +20,10 @@ struct ScenarioParams {
     double max_delivery_km = 6.0;           // customer within this geodesic radius of the restaurant
     std::string traffic = "free";
     std::uint64_t seed = 1;
+    // "uniform" (default): restaurants, couriers and arrival times uniform.
+    // "clustered": restaurants in hotspots, couriers biased toward them,
+    // popularity-skewed restaurant choice, lunch and dinner arrival peaks.
+    std::string demand = "uniform";
 };
 
 struct Restaurant {

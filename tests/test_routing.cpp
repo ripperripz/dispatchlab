@@ -142,7 +142,7 @@ TEST_CASE("dijkstra: adjacency-list baseline gives identical costs") {
 }
 
 TEST_CASE("router: algorithm names round-trip") {
-    for (Algorithm a : {Algorithm::Dijkstra, Algorithm::Bidirectional, Algorithm::AStar}) {
+    for (Algorithm a : {Algorithm::kDijkstra, Algorithm::kBidirectional, Algorithm::kAStar}) {
         CHECK(parse_algorithm(algorithm_name(a)) == a);
     }
     CHECK_THROWS(parse_algorithm("alt"));

@@ -364,6 +364,61 @@ Dist CCH::distance_from_prepared(NodeId s, std::uint32_t* settled_out) {
     return mu;
 }
 
+std::vector<Dist> CCH::distances_to(NodeId t, const std::vector<NodeId>& sources, std::uint64_t* work) {
+    const auto& rank_ = topo_->rank;
+    const auto& up_offsets_ = topo_->up_offsets;
+    const auto& up_targets_ = topo_->up_targets;
+    const auto& up_w_ = metric_->up_w;
+    if (sel_stamp_.size() != n_) {
+        sel_stamp_.assign(n_, 0);
+        sweep_.assign(n_, kInfDist);
+    }
+    if (++sel_epoch_ == 0) {
+        std::fill(sel_stamp_.begin(), sel_stamp_.end(), 0);
+        sel_epoch_ = 1;
+    }
+    // 1. Selection: the union of the sources' upward closures (in a CCH, the
+    //    upward-reachable set of v is its ancestor set in the elimination tree).
+    sel_.clear();
+    for (NodeId s : sources) {
+        if (s >= n_) throw std::out_of_range("CCH: node id out of range");
+        const std::uint32_t r = rank_[s];
+        if (sel_stamp_[r] == sel_epoch_) continue;
+        sel_stamp_[r] = sel_epoch_;
+        std::size_t head = sel_.size();
+        sel_.push_back(r);
+        while (head < sel_.size()) {
+            const std::uint32_t x = sel_[head++];
+            for (std::uint32_t e = up_offsets_[x]; e < up_offsets_[x + 1]; ++e) {
+                const std::uint32_t y = up_targets_[e];
+                if (sel_stamp_[y] != sel_epoch_) {
+                    sel_stamp_[y] = sel_epoch_;
+                    sel_.push_back(y);
+                }
+            }
+        }
+    }
+    // 2. Complete backward upward search from t: bwd_.dist(x) = dist(x -> t)
+    //    over descending paths.
+    const std::uint32_t settled = prepare_target(t);
+    // 3. Sweep in descending rank: dist(v -> t) = min(down label, up edge + dist(u -> t)).
+    std::sort(sel_.begin(), sel_.end(), std::greater<>());
+    for (const std::uint32_t v : sel_) {
+        Dist d = bwd_.dist(v);
+        for (std::uint32_t e = up_offsets_[v]; e < up_offsets_[v + 1]; ++e) {
+            if (up_w_[e] == kInfDist) continue;
+            const Dist du = sweep_[up_targets_[e]];  // higher rank: already final
+            if (du != kInfDist && up_w_[e] + du < d) d = up_w_[e] + du;
+        }
+        sweep_[v] = d;
+    }
+    std::vector<Dist> out;
+    out.reserve(sources.size());
+    for (NodeId s : sources) out.push_back(sweep_[rank_[s]]);
+    if (work) *work = sel_.size() + settled;
+    return out;
+}
+
 // Appends the original nodes of the hierarchy edge from->to (excluding `from`).
 void CCH::unpack(std::uint32_t from, std::uint32_t to, std::vector<NodeId>& out) const {
     const auto& order_ = topo_->order;

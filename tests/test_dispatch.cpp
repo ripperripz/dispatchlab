@@ -94,7 +94,7 @@ TEST_CASE("dispatch: greedy eta only considers available couriers") {
 
 namespace {
 const char* kEtaVariants[] = {"greedy_eta", "greedy_eta_pruned", "greedy_eta_cch", "greedy_eta_bounded",
-                              "greedy_eta_adaptive"};
+                              "greedy_eta_adaptive", "greedy_eta_rphast", "greedy_eta_hybrid"};
 }
 
 TEST_CASE("dispatch: greedy eta strategies make identical decisions on random requests") {
@@ -102,7 +102,8 @@ TEST_CASE("dispatch: greedy eta strategies make identical decisions on random re
         Graph g = seed % 2 ? fixtures::grid(16, 16) : fixtures::random_geometric(400, 3, seed);
         CCH cch(g);
         GreedyEtaPolicy full(g, EtaStrategy::Full), pruned(g, EtaStrategy::Pruned), viacch(g, EtaStrategy::Cch, &cch),
-            bounded(g, EtaStrategy::Bounded, &cch), adaptive(g, EtaStrategy::Adaptive, &cch);
+            bounded(g, EtaStrategy::Bounded, &cch), adaptive(g, EtaStrategy::Adaptive, &cch),
+            rphast(g, EtaStrategy::Rphast, &cch), hybrid(g, EtaStrategy::Hybrid, &cch);
         Rng rng(seed);
         for (int i = 0; i < 300; ++i) {
             const auto r = static_cast<NodeId>(rng.below(g.num_nodes()));
@@ -119,11 +120,11 @@ TEST_CASE("dispatch: greedy eta strategies make identical decisions on random re
                 av.push_back({static_cast<std::uint32_t>(j * 3 + 1), loc});
             }
             DispatchRequest req{0, r, d, now, ready};
-            std::uint32_t chosen[5];
-            SimTime eta[5];
-            bool ok[5];
-            GreedyEtaPolicy* pols[5] = {&full, &pruned, &viacch, &bounded, &adaptive};
-            for (int p = 0; p < 5; ++p) {
+            std::uint32_t chosen[7];
+            SimTime eta[7];
+            bool ok[7];
+            GreedyEtaPolicy* pols[7] = {&full, &pruned, &viacch, &bounded, &adaptive, &rphast, &hybrid};
+            for (int p = 0; p < 7; ++p) {
                 try {
                     chosen[p] = pols[p]->choose(req, av);
                     eta[p] = pols[p]->last_decision().eta;
@@ -132,7 +133,7 @@ TEST_CASE("dispatch: greedy eta strategies make identical decisions on random re
                     ok[p] = false;  // no courier can reach the restaurant
                 }
             }
-            for (int p = 1; p < 5; ++p) {
+            for (int p = 1; p < 7; ++p) {
                 REQUIRE(ok[p] == ok[0]);
                 if (ok[0]) {
                     REQUIRE(chosen[p] == chosen[0]);
@@ -160,7 +161,7 @@ TEST_CASE("dispatch: greedy eta strategies give identical simulations (same log,
     for (const char* name : kEtaVariants) {
         auto pol = make_policy(name, g);
         CHECK(pol->name() == name);
-        Simulator sim(g, sc, *pol, Algorithm::AStar);
+        Simulator sim(g, sc, *pol, Algorithm::kAStar);
         SimResult r = sim.run();
         std::string text;
         for (const auto& e : r.log) text += log_event_to_json(e, false) + "\n";
@@ -170,5 +171,21 @@ TEST_CASE("dispatch: greedy eta strategies give identical simulations (same log,
     for (std::size_t i = 1; i < hashes.size(); ++i) {
         CHECK(hashes[i] == hashes[0]);
         CHECK(logs[i] == logs[0]);
+    }
+}
+
+TEST_CASE("dispatch: rphast many-to-one equals point-to-point CCH distances") {
+    for (std::uint64_t seed = 1; seed <= 4; ++seed) {
+        Graph g = seed % 2 ? fixtures::grid(15, 15) : fixtures::random_geometric(500, 3, seed);
+        CCH cch(g);
+        Dijkstra d = make_dijkstra(g);
+        Rng rng(seed);
+        for (int i = 0; i < 40; ++i) {
+            const auto t = static_cast<NodeId>(rng.below(g.num_nodes()));
+            std::vector<NodeId> src;
+            for (int k = 0; k < 30; ++k) src.push_back(static_cast<NodeId>(rng.below(g.num_nodes())));
+            const auto got = cch.distances_to(t, src);
+            for (std::size_t k = 0; k < src.size(); ++k) REQUIRE(got[k] == d.query(src[k], t, false).cost);
+        }
     }
 }

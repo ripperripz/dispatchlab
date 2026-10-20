@@ -24,7 +24,7 @@ struct ExperimentConfig {
     std::vector<std::string> traffic;
     std::vector<std::uint64_t> seeds;
     std::vector<std::string> policies = {"nearest", "greedy_eta"};
-    Algorithm routing = Algorithm::AStar;
+    Algorithm routing = Algorithm::kAStar;
     SimTime prep_min_ms = 8 * 60000;
     SimTime prep_max_ms = 20 * 60000;
     SimTime drain_ms = 2 * 3600000;

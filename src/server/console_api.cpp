@@ -500,7 +500,7 @@ HttpResponse ConsoleApi::Impl::determinism(const HttpRequest& req) {
         const Scenario sc = generate_scenario(base, params);
         const Graph tg = apply_traffic(base, parse_traffic(sc.params.traffic), sc.params.seed);
         auto policy = make_policy(policy_name, tg);
-        Simulator sim(tg, sc, *policy, Algorithm::AStar);
+        Simulator sim(tg, sc, *policy, Algorithm::kAStar);
         SimResult r = sim.run();
         if (log_text) {
             for (const auto& e : r.log) *log_text += log_event_to_json(e, false) + "\n";
@@ -549,7 +549,7 @@ HttpResponse ConsoleApi::Impl::selftest(const HttpRequest& req) {
     const Scenario sc = generate_scenario(base, p);
     const Graph tg = apply_traffic(base, parse_traffic(sc.params.traffic), sc.params.seed);
     auto policy = make_policy(req.param("policy", "nearest"), tg);
-    Simulator sim(tg, sc, *policy, Algorithm::AStar);
+    Simulator sim(tg, sc, *policy, Algorithm::kAStar);
     const SimResult r = sim.run();
     const auto bad = make_corrupted_logs(r.log);
     json::Writer w;

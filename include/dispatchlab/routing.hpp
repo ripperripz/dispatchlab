@@ -194,7 +194,8 @@ private:
     RoutingHeap heap_;
 };
 
-enum class Algorithm { Dijkstra, Bidirectional, AStar };
+// k-prefixed so the enumerators do not shadow the Dijkstra / AStar types (GCC -Wshadow).
+enum class Algorithm { kDijkstra, kBidirectional, kAStar };
 std::string_view algorithm_name(Algorithm a);
 Algorithm parse_algorithm(std::string_view s);
 

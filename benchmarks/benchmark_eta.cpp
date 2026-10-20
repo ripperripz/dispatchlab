@@ -38,6 +38,8 @@ EtaStrategy parse_strategy(const std::string& s) {
     if (s == "cch") return EtaStrategy::Cch;
     if (s == "bounded") return EtaStrategy::Bounded;
     if (s == "adaptive") return EtaStrategy::Adaptive;
+    if (s == "rphast") return EtaStrategy::Rphast;
+    if (s == "hybrid") return EtaStrategy::Hybrid;
     throw std::invalid_argument("unknown strategy " + s);
 }
 
@@ -54,6 +56,8 @@ int main(int argc, char** argv) {
     const std::uint64_t samples = args.num("samples", 200);
     const std::uint64_t seeds = args.num("seeds", 3);
     const std::string out = args.get("out", "");
+    const std::string demand = args.get("demand", "uniform");
+    const bool run_micro = args.num("micro", 1) != 0;
     std::vector<std::string> strategy_names = split(args.get("strategies", "full,pruned,cch,bounded"));
     std::vector<std::uint32_t> courier_counts;
     for (const auto& s : split(args.get("couriers", "20,100,500"))) courier_counts.push_back(static_cast<std::uint32_t>(std::stoul(s)));
@@ -68,7 +72,7 @@ int main(int argc, char** argv) {
     Graph base = load_graph(args.graph);
     const auto t_cch = bench::Clock::now();
     bool need_cch = false;
-    for (const auto& s : strategy_names) need_cch |= s == "cch" || s == "bounded" || s == "adaptive";
+    for (const auto& s : strategy_names) need_cch |= s != "full" && s != "pruned";
     std::unique_ptr<CCH> cch_free = need_cch ? std::make_unique<CCH>(base) : nullptr;
     const double cch_ms = bench::us_since(t_cch) / 1000.0;
     const std::uint32_t n = base.num_nodes();
@@ -78,6 +82,7 @@ int main(int argc, char** argv) {
     w.kv("benchmark", "decision_aware_eta");
     bench::write_environment(w, base, 0);
     w.kv("cch_preprocessing_ms", cch_ms);
+    w.kv("demand", demand);
     w.key("strategies").begin_array();
     for (const auto& s : strategy_names) w.value(s);
     w.end_array();
@@ -89,6 +94,7 @@ int main(int argc, char** argv) {
                 "settled_med", "exact_med");
     w.key("micro").begin_array();
     for (const bool food_ready : {false, true}) {
+        if (!run_micro) break;
         const char* regime = food_ready ? "ready" : "not_ready";
         for (const std::uint32_t k : courier_counts) {
             Rng rng(0xD15A7C4 ^ k ^ (food_ready ? 1 : 0));
@@ -155,6 +161,7 @@ int main(int argc, char** argv) {
             p.order_window_ms = sz.window_ms;
             p.traffic = "moderate";
             p.seed = seed;
+            p.demand = demand;
             const Scenario sc = generate_scenario(base, p);
             const Graph tg = apply_traffic(base, TrafficScenario::Moderate, seed);
             std::unique_ptr<CCH> cch_t;
@@ -165,7 +172,7 @@ int main(int argc, char** argv) {
             std::uint64_t ref_hash = 0;
             for (const auto& sname : strategy_names) {
                 GreedyEtaPolicy pol(tg, parse_strategy(sname), cch_t.get());
-                Simulator sim(tg, sc, pol, Algorithm::AStar);
+                Simulator sim(tg, sc, pol, Algorithm::kAStar);
                 const auto t0 = bench::Clock::now();
                 const SimResult r = sim.run();
                 const double wall = bench::us_since(t0) / 1e6;

@@ -12,12 +12,14 @@ GreedyEtaPolicy::GreedyEtaPolicy(const Graph& g, EtaStrategy strategy, const CCH
       strategy_(strategy),
       to_restaurant_(make_reverse_dijkstra(g)),
       restaurant_to_customer_(g),
-      ws_(strategy == EtaStrategy::Pruned || strategy == EtaStrategy::Adaptive ? g.num_nodes() : 0) {
-    if (strategy_ == EtaStrategy::Pruned || strategy_ == EtaStrategy::Adaptive) {
+      ws_(strategy == EtaStrategy::Pruned || strategy == EtaStrategy::Adaptive || strategy == EtaStrategy::Hybrid
+              ? g.num_nodes()
+              : 0) {
+    if (strategy_ == EtaStrategy::Pruned || strategy_ == EtaStrategy::Adaptive || strategy_ == EtaStrategy::Hybrid) {
         node_stamp_.assign(g.num_nodes(), 0);
         node_first_.assign(g.num_nodes(), 0);
     }
-    if (strategy_ == EtaStrategy::Cch || strategy_ == EtaStrategy::Bounded || strategy_ == EtaStrategy::Adaptive) {
+    if (strategy_ != EtaStrategy::Full && strategy_ != EtaStrategy::Pruned) {
         cch_ = cch ? std::make_unique<CCH>(*cch) : std::make_unique<CCH>(g);  // a copy shares the hierarchy
     }
 }
@@ -29,6 +31,8 @@ std::string_view GreedyEtaPolicy::name() const {
         case EtaStrategy::Cch: return "greedy_eta_cch";
         case EtaStrategy::Bounded: return "greedy_eta_bounded";
         case EtaStrategy::Adaptive: return "greedy_eta_adaptive";
+        case EtaStrategy::Rphast: return "greedy_eta_rphast";
+        case EtaStrategy::Hybrid: return "greedy_eta_hybrid";
     }
     return "greedy_eta";
 }
@@ -64,7 +68,8 @@ void GreedyEtaPolicy::choose_full(const DispatchRequest& req, const std::vector<
 // exceeds the best ETA found, or equals it while d already exceeds the best
 // courier's T (then the T tie-break also favours the incumbent). Stale heap
 // entries only make d smaller, so the bound stays valid.
-void GreedyEtaPolicy::choose_pruned(const DispatchRequest& req, const std::vector<CourierCandidate>& av, Best& b) {
+bool GreedyEtaPolicy::choose_pruned(const DispatchRequest& req, const std::vector<CourierCandidate>& av, Best& b,
+                                    std::uint64_t budget) {
     count_routing_call();
     ++routing_queries_;
     if (++stamp_ == 0) {
@@ -85,6 +90,7 @@ void GreedyEtaPolicy::choose_pruned(const DispatchRequest& req, const std::vecto
         }
     }
     std::size_t remaining = av.size();
+    std::uint64_t settled = 0;
     ws_.reset();
     heap_.clear();
     ws_.set(req.restaurant, 0, kInvalidNode);
@@ -95,9 +101,11 @@ void GreedyEtaPolicy::choose_pruned(const DispatchRequest& req, const std::vecto
             const SimTime lb = std::max(req.now + static_cast<SimTime>(d), req.ready_at);
             if (lb > b.v || (lb == b.v && d > b.t)) break;  // no unsettled courier can win
         }
+        if (settled >= budget) return false;  // decision not proven within budget
         const HeapItem top = heap_.take();
         if (top.key != ws_.dist(top.node)) continue;
         ++last_.nodes_settled;
+        ++settled;
         const NodeId v = top.node;
         if (node_stamp_[v] == stamp_) {
             for (std::size_t k = node_first_[v]; k < by_node_.size() && by_node_[k].first == v; ++k) {
@@ -115,6 +123,21 @@ void GreedyEtaPolicy::choose_pruned(const DispatchRequest& req, const std::vecto
                 heap_.push({nd, u});
             }
         }
+    }
+    return true;
+}
+
+void GreedyEtaPolicy::choose_rphast(const DispatchRequest& req, const std::vector<CourierCandidate>& av, Best& b) {
+    targets_.clear();
+    for (const auto& c : av) targets_.push_back(c.location);
+    std::uint64_t work = 0;
+    const std::vector<Dist> to_r = cch_->distances_to(req.restaurant, targets_, &work);
+    ++routing_queries_;
+    last_.nodes_settled += work;
+    for (std::size_t i = 0; i < av.size(); ++i) {
+        if (to_r[i] == kInfDist) continue;
+        ++last_.exact_distances;
+        consider(b, std::max(req.now + static_cast<SimTime>(to_r[i]), req.ready_at), to_r[i], av[i].id, i);
     }
 }
 
@@ -195,6 +218,12 @@ std::uint32_t GreedyEtaPolicy::choose(const DispatchRequest& req, const std::vec
             } else {
                 choose_bounded(req, available, b);
             }
+            break;
+        case EtaStrategy::Rphast: choose_rphast(req, available, b); break;
+        case EtaStrategy::Hybrid:
+            // The incumbent found by the budgeted search (if any) is a real courier
+            // with an exact T, so Bounded may start from it and stays exact.
+            if (!choose_pruned(req, available, b, kHybridPrunedBudget)) choose_bounded(req, available, b);
             break;
     }
     if (!b.has) throw std::runtime_error("GreedyEtaPolicy: no courier can reach restaurant");

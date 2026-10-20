@@ -63,6 +63,13 @@ public:
     std::uint32_t prepare_target(NodeId t);
     Dist distance_from_prepared(NodeId s, std::uint32_t* settled = nullptr);
 
+    // RPHAST-style many-to-one (Delling, Goldberg, Werneck 2011, restricted to the
+    // sources' upward search spaces): exact dist(sources[i] -> t) for every i.
+    // Selection = union of the sources' upward closures; one complete backward
+    // upward search from t; one sweep over the selection in descending rank.
+    // `work` (optional) receives selection size + nodes settled.
+    std::vector<Dist> distances_to(NodeId t, const std::vector<NodeId>& sources, std::uint64_t* work = nullptr);
+
     const CchStats& stats() const { return stats_; }
     std::size_t memory_bytes() const;  // hierarchy (topology + metric), excluding query workspaces
     std::size_t query_memory_bytes() const;
@@ -79,6 +86,11 @@ private:
 
     SearchWorkspace fwd_, bwd_;
     RoutingHeap fheap_, bheap_;
+    // RPHAST scratch (lazily sized): selection marks and sweep labels by rank.
+    std::vector<std::uint32_t> sel_stamp_;
+    std::vector<Dist> sweep_;
+    std::vector<std::uint32_t> sel_;
+    std::uint32_t sel_epoch_ = 0;
 };
 
 }  // namespace dispatchlab

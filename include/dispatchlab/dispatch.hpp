@@ -92,8 +92,14 @@ private:
 //   Adaptive- Pruned when available couriers are dense (expected search radius
 //             n / k nodes below kAdaptiveNodesPerCourier), Bounded otherwise.
 //             Exact either way; the rule only affects speed.
-enum class EtaStrategy { Full, Pruned, Cch, Bounded, Adaptive };
+//   Rphast  - every T(c, r) at once with an RPHAST-style restricted CCH sweep
+//             (the strong exhaustive baseline)
+//   Hybrid  - Pruned under a node budget; if the budget runs out before the
+//             decision is proven, continue with Bounded, keeping the incumbent.
+//             Size-independent (no graph-size constant); overhead <= the budget.
+enum class EtaStrategy { Full, Pruned, Cch, Bounded, Adaptive, Rphast, Hybrid };
 inline constexpr double kAdaptiveNodesPerCourier = 20000.0;  // tuned on Tricity (docs/RESEARCH.md)
+inline constexpr std::uint64_t kHybridPrunedBudget = 8000;    // nodes settled before switching
 
 class GreedyEtaPolicy final : public DispatchPolicy {
 public:
@@ -115,7 +121,10 @@ private:
     };
     void consider(Best& b, SimTime v, Dist t, std::uint32_t id, std::size_t idx) const;
     void choose_full(const DispatchRequest& req, const std::vector<CourierCandidate>& av, Best& b);
-    void choose_pruned(const DispatchRequest& req, const std::vector<CourierCandidate>& av, Best& b);
+    // Returns false if `budget` nodes were settled before the decision was proven.
+    bool choose_pruned(const DispatchRequest& req, const std::vector<CourierCandidate>& av, Best& b,
+                       std::uint64_t budget = UINT64_MAX);
+    void choose_rphast(const DispatchRequest& req, const std::vector<CourierCandidate>& av, Best& b);
     void choose_cch(const DispatchRequest& req, const std::vector<CourierCandidate>& av, Best& b);
     void choose_bounded(const DispatchRequest& req, const std::vector<CourierCandidate>& av, Best& b);
 

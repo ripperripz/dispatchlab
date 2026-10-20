@@ -27,7 +27,7 @@ Scenario line_scenario(const Graph& g, std::vector<OrderSpec> orders, std::vecto
     return s;
 }
 
-SimResult run_policy(const Graph& g, const Scenario& sc, const char* policy, Algorithm algo = Algorithm::AStar) {
+SimResult run_policy(const Graph& g, const Scenario& sc, const char* policy, Algorithm algo = Algorithm::kAStar) {
     auto p = make_policy(policy, g);
     Simulator sim(g, sc, *p, algo);
     return sim.run();
@@ -177,9 +177,9 @@ TEST_CASE("simulator: routing algorithm choice does not change costs") {
     p.max_delivery_km = 2.0;
     p.seed = 3;
     Scenario sc = generate_scenario(g, p);
-    SimResult a = run_policy(g, sc, "greedy_eta", Algorithm::Dijkstra);
-    SimResult b = run_policy(g, sc, "greedy_eta", Algorithm::AStar);
-    SimResult c = run_policy(g, sc, "greedy_eta", Algorithm::Bidirectional);
+    SimResult a = run_policy(g, sc, "greedy_eta", Algorithm::kDijkstra);
+    SimResult b = run_policy(g, sc, "greedy_eta", Algorithm::kAStar);
+    SimResult c = run_policy(g, sc, "greedy_eta", Algorithm::kBidirectional);
     // Equal-cost alternative paths may differ in length, but every timestamp
     // depends only on costs, which are exact for all three.
     REQUIRE(a.log.size() == b.log.size());
@@ -241,4 +241,26 @@ TEST_CASE("simulator: traffic multipliers are >= 1 and documented ranges hold") 
         }
     }
     CHECK(graphs_equal(apply_traffic(g, TrafficScenario::FreeFlow, 1), g));
+}
+
+TEST_CASE("simulator: clustered demand is deterministic and leaves uniform scenarios unchanged") {
+    Graph g = fixtures::grid(20, 20);
+    ScenarioParams p;
+    p.couriers = 12;
+    p.orders = 200;
+    p.max_delivery_km = 2.0;
+    p.seed = 5;
+    const std::uint64_t uniform_hash = generate_scenario(g, p).hash();
+    p.demand = "clustered";
+    Scenario a = generate_scenario(g, p), b = generate_scenario(g, p);
+    CHECK(a.hash() == b.hash());
+    CHECK(a.hash() != uniform_hash);
+    CHECK(scenario_from_json(scenario_to_json(a)).hash() == a.hash());
+    // Arrivals concentrate around the two peaks: the middle third (between the
+    // peaks) holds well under a third of the orders.
+    std::size_t mid = 0;
+    for (const auto& o : a.orders) mid += (o.created_at > p.order_window_ms * 0.45 && o.created_at < p.order_window_ms * 0.57);
+    CHECK(mid < a.orders.size() / 6);
+    p.demand = "nonsense";
+    CHECK_THROWS(generate_scenario(g, p));
 }

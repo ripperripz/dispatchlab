@@ -161,17 +161,17 @@ std::uint64_t path_length_mm(const Graph& g, const std::vector<NodeId>& path) {
 
 std::string_view algorithm_name(Algorithm a) {
     switch (a) {
-        case Algorithm::Dijkstra: return "dijkstra";
-        case Algorithm::Bidirectional: return "bidirectional";
-        case Algorithm::AStar: return "astar";
+        case Algorithm::kDijkstra: return "dijkstra";
+        case Algorithm::kBidirectional: return "bidirectional";
+        case Algorithm::kAStar: return "astar";
     }
     return "?";
 }
 
 Algorithm parse_algorithm(std::string_view s) {
-    if (s == "dijkstra") return Algorithm::Dijkstra;
-    if (s == "bidirectional" || s == "bidir") return Algorithm::Bidirectional;
-    if (s == "astar" || s == "a*") return Algorithm::AStar;
+    if (s == "dijkstra") return Algorithm::kDijkstra;
+    if (s == "bidirectional" || s == "bidir") return Algorithm::kBidirectional;
+    if (s == "astar" || s == "a*") return Algorithm::kAStar;
     throw std::invalid_argument("unknown routing algorithm: " + std::string(s));
 }
 
@@ -180,9 +180,9 @@ Router::Router(const Graph& g, Algorithm a)
 
 RouteResult Router::route(NodeId s, NodeId t, bool with_path) {
     switch (algo_) {
-        case Algorithm::Dijkstra: return dij_.query(s, t, with_path);
-        case Algorithm::Bidirectional: return bi_.query(s, t, with_path);
-        case Algorithm::AStar: return astar_.query(s, t, with_path);
+        case Algorithm::kDijkstra: return dij_.query(s, t, with_path);
+        case Algorithm::kBidirectional: return bi_.query(s, t, with_path);
+        case Algorithm::kAStar: return astar_.query(s, t, with_path);
     }
     throw std::logic_error("unreachable");
 }

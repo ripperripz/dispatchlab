@@ -24,6 +24,7 @@ std::uint64_t Scenario::hash() const {
     h.add_i64(std::llround(params.max_delivery_km * 1000.0));
     h.add_str(params.traffic);
     h.add_u64(params.seed);
+    if (params.demand != "uniform") h.add_str(params.demand);  // keeps uniform hashes unchanged
     h.add_str(graph_source);
     h.add_u32(graph_nodes);
     h.add_i64(end_time);
@@ -68,12 +69,64 @@ Scenario generate_scenario(const Graph& g, const ScenarioParams& p_in) {
     s.graph_nodes = g.num_nodes();
     s.end_time = p.order_window_ms + p.drain_ms;
 
+    if (p.demand != "uniform" && p.demand != "clustered") {
+        throw std::invalid_argument("generate_scenario: demand must be uniform or clustered");
+    }
+    const bool clustered = p.demand == "clustered";
     Rng rng(p.seed);
     const std::uint32_t n = g.num_nodes();
     auto random_node = [&] { return static_cast<NodeId>(rng.below(n)); };
+    // Uniform random node within `radius_m` of `center` (rejection sampling;
+    // falls back to the closest candidate seen).
+    auto near = [&](NodeId center, double radius_m) {
+        NodeId best = random_node();
+        double best_m = haversine_m(g.lat[center], g.lon[center], g.lat[best], g.lon[best]);
+        for (int tries = 0; tries < 4000 && best_m > radius_m; ++tries) {
+            const NodeId c = random_node();
+            const double m = haversine_m(g.lat[center], g.lon[center], g.lat[c], g.lon[c]);
+            if (m < best_m) {
+                best = c;
+                best_m = m;
+            }
+        }
+        return best;
+    };
 
-    for (std::uint32_t i = 0; i < p.restaurants; ++i) s.restaurants.push_back({i, random_node()});
-    for (std::uint32_t i = 0; i < p.couriers; ++i) s.couriers.push_back({i, random_node()});
+    std::vector<NodeId> hotspots;
+    if (!clustered) {
+        for (std::uint32_t i = 0; i < p.restaurants; ++i) s.restaurants.push_back({i, random_node()});
+        for (std::uint32_t i = 0; i < p.couriers; ++i) s.couriers.push_back({i, random_node()});
+    } else {
+        // Hotspots: commercial centres. Restaurants within 1.5 km of one; 60% of
+        // couriers start within 3 km of one, the rest anywhere.
+        const std::uint32_t H = std::clamp<std::uint32_t>(p.restaurants / 4, 4, 24);
+        for (std::uint32_t i = 0; i < H; ++i) hotspots.push_back(random_node());
+        for (std::uint32_t i = 0; i < p.restaurants; ++i) s.restaurants.push_back({i, near(hotspots[i % H], 1500.0)});
+        for (std::uint32_t i = 0; i < p.couriers; ++i) {
+            const bool hub = rng.below(100) < 60;
+            s.couriers.push_back({i, hub ? near(hotspots[rng.below(H)], 3000.0) : random_node()});
+        }
+    }
+    // Clustered arrivals: 20% uniform background, otherwise a lunch (45%) or
+    // dinner (55%) peak at 30% / 72% of the window with sd 7% of the window.
+    auto arrival = [&]() -> SimTime {
+        const auto W = static_cast<double>(p.order_window_ms);
+        if (!clustered || rng.below(100) < 20) return static_cast<SimTime>(rng.below(static_cast<std::uint64_t>(p.order_window_ms)));
+        const double mu = (rng.below(100) < 45 ? 0.30 : 0.72) * W, sd = 0.07 * W;
+        for (;;) {
+            // Box-Muller; resample until inside the window.
+            const double u1 = std::max(rng.unit(), 1e-12), u2 = rng.unit();
+            const double z = std::sqrt(-2.0 * std::log(u1)) * std::cos(6.283185307179586 * u2);
+            const double t = mu + sd * z;
+            if (t >= 0.0 && t < W) return static_cast<SimTime>(t);
+        }
+    };
+    // Popularity skew: restaurant index ~ floor(R * u^2) favours low indices.
+    auto pick_restaurant = [&]() -> std::uint32_t {
+        if (!clustered) return static_cast<std::uint32_t>(rng.below(p.restaurants));
+        const double u = rng.unit();
+        return std::min<std::uint32_t>(p.restaurants - 1, static_cast<std::uint32_t>(u * u * p.restaurants));
+    };
 
     // Arrival times: `orders` i.i.d. uniform points on [0, window), i.e. a
     // Poisson process conditioned on its count. Integer-only => portable.
@@ -90,8 +143,8 @@ Scenario generate_scenario(const Graph& g, const ScenarioParams& p_in) {
     for (std::uint32_t i = 0; i < p.orders; ++i) {
         Draft d;
         d.seq = i;
-        d.created = static_cast<SimTime>(rng.below(static_cast<std::uint64_t>(p.order_window_ms)));
-        d.restaurant = static_cast<std::uint32_t>(rng.below(p.restaurants));
+        d.created = arrival();
+        d.restaurant = pick_restaurant();
         d.prep = rng.range(p.prep_min_ms, p.prep_max_ms);
         const NodeId rnode = s.restaurants[d.restaurant].location;
         // Customer: uniform node within max_delivery_km of the restaurant (rejection
@@ -135,6 +188,7 @@ std::string scenario_to_json(const Scenario& s) {
     w.kv("max_delivery_m", static_cast<std::int64_t>(std::llround(s.params.max_delivery_km * 1000.0)));
     w.kv("traffic", s.params.traffic);
     w.kv("seed", s.params.seed);
+    w.kv("demand", s.params.demand);
     w.end_object();
     w.kv("graph_source", s.graph_source);
     w.kv("graph_nodes", s.graph_nodes);
@@ -180,6 +234,7 @@ Scenario scenario_from_json(const std::string& text) {
     s.params.max_delivery_km = static_cast<double>(p.at("max_delivery_m").as_int()) / 1000.0;
     s.params.traffic = p.at("traffic").as_string();
     s.params.seed = static_cast<std::uint64_t>(p.at("seed").as_int());
+    s.params.demand = p.get_string("demand", "uniform");
     s.graph_source = v.at("graph_source").as_string();
     s.graph_nodes = static_cast<std::uint32_t>(v.at("graph_nodes").as_int());
     s.end_time = v.at("end_time").as_int();

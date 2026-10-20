@@ -27,7 +27,7 @@ Run make_run(std::uint64_t seed, const char* policy, bool paths = false) {
     auto pol = make_policy(policy, g);
     SimOptions o;
     o.log_paths = paths;
-    Simulator sim(g, r.sc, *pol, Algorithm::AStar, o);
+    Simulator sim(g, r.sc, *pol, Algorithm::kAStar, o);
     r.res = sim.run();
     return r;
 }
