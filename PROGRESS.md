@@ -75,6 +75,17 @@ Last updated: 2026-10-19. Re-read this file, then `docs/PRD.md`, before resuming
   adaptive); identical choices and hashes everywhere; adaptive 7–16× lower decision time. The
   bucket-style CCH one-to-many is a measured loss at many couriers. verify.sh has a RESEARCH check.
 
+## Research v2/v3 + Linux (branch `feat/research-v2`)
+
+* Linux: Ubuntu 24.04 / GCC 13 reference image (`ci/Dockerfile`) and GitHub Actions workflow. The
+  first Linux build failed on GCC `-Wshadow` (enumerators shadowing the `Dijkstra`/`AStar` types);
+  fixed by renaming them to `Algorithm::kDijkstra` etc.
+* RPHAST-style restricted CCH many-to-one (`CCH::distances_to`) as the strong exact baseline.
+* Strategies `hybrid` (budgeted pruned → bounded; negative result) and `auto` (pruned/RPHAST; best on
+  Tricity, 2–7× worse than `adaptive` at 17M nodes).
+* Clustered, time-of-day demand mode; uniform scenario hashes unchanged.
+* A benchmark run was invalidated by laptop sleep; repeated under `caffeinate`.
+
 ## In progress
 
 * Nothing in progress. All mandatory AC and the optional AC-17 (CCH) pass in `verify.sh` (exit 0,

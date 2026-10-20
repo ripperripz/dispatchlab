@@ -128,9 +128,12 @@ reproducibility metadata (dataset, seeds, compiler, hardware, parameters), and i
   worker-pool server (4× the throughput and 6.4× lower p99 than thread-per-connection).
 * **Scale:** the full Geofabrik northern-zone extract (17.2M nodes, 35.4M edges) imports in 10 s
   and passes the 1,000-query agreement suite.
-* **Research** ([docs/RESEARCH.md](docs/RESEARCH.md)): decision-aware Greedy ETA. Exact strategies
-  (`greedy_eta_pruned`, `greedy_eta_bounded`, `greedy_eta_adaptive`) make provably identical
-  decisions with up to 16× less decision time; identical simulation hashes are checked by verify.sh.
+* **Research** ([docs/RESEARCH.md](docs/RESEARCH.md)): decision-aware Greedy ETA dispatch. Eight
+  exact strategies make provably identical decisions; identical simulation hashes are checked by
+  verify.sh. Against the naive exhaustive baseline the best strategy is 7–16× faster on Tricity and
+  up to ~400× at 17M nodes. Against a strong RPHAST-style baseline the gain is up to 2.5× (10× in
+  the 17M micro) when free couriers are dense, and roughly parity when they are sparse. Clustered,
+  peaked demand (`--demand clustered`) and the negative results are included.
 
 ```bash
 ./build/benchmark_layout data/processed/tricity.graph --queries 1000 --out benchmarks/results/layout_tricity.json
