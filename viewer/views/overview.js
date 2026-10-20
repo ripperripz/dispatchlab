@@ -78,17 +78,18 @@
           fact('Strongly connected', info ? (info.graph.strongly_connected ? 'Yes' : 'No') : '–'));
 
         // Engine panel.
-        const eng = h('section.panel', h('div.panel-head', h('h2', 'Engine'), DL.api.live ? h('span.badge.ok', icon('check'), 'Live') : h('span.badge', 'Recorded')));
+        const eng = h('section.panel', h('div.panel-head', h('h2', 'Engine'), DL.api.demo ? h('span.badge', 'Recorded demo') : DL.api.live ? h('span.badge.ok', icon('check'), 'Live') : h('span.badge', 'Recorded')));
         const rows = h('dl.rows');
         const row = (k, v) => rows.appendChild(h('div.row', h('dt', k), h('dd', v)));
         if (info) {
           row('Graph in memory', fmt.bytes(info.graph.memory_bytes));
           row('Validation', info.graph.validate === 'ok' ? 'All checks pass' : info.graph.validate);
           row('CCH upward edges', `${fmt.int(info.cch.upward_edges)} (${(info.cch.upward_edges / info.cch.original_pairs).toFixed(1)}× fill-in)`);
-          row('CCH preprocessing (this server start)', `${fmt.num(info.cch.order_ms + info.cch.contract_ms + info.cch.customize_ms, 0)} ms`);
+          row(DL.api.demo ? 'CCH preprocessing (recording run)' : 'CCH preprocessing (this server start)', `${fmt.num(info.cch.order_ms + info.cch.contract_ms + info.cch.customize_ms, 0)} ms`);
           row('Hierarchy size', fmt.bytes(info.cch.hierarchy_bytes));
           row('Compiler', info.environment.compiler);
           row('Processor', info.environment.cpu);
+          if (DL.api.demo) row('Recorded at', window.DISPATCHLAB_DEMO.recorded_utc.replace('T', ' ').replace('Z', ' UTC'));
         } else if (ds) {
           const env = results.benchmarks.routing.environment;
           row('Graph source', 'Recorded benchmark run');

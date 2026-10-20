@@ -181,6 +181,9 @@ p { margin: 0; }
 .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; margin-top: 4px; background: var(--text-3); }
 .dot.live { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
 .dot.offline { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-soft); }
+.input:disabled { color: var(--text-2); background: var(--bg-sunken); cursor: not-allowed; }
+.dot.demo { background: var(--focus); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 14%, transparent); }
+.badge.demo { color: var(--focus); border-color: color-mix(in srgb, var(--focus) 35%, transparent); background: color-mix(in srgb, var(--focus) 8%, transparent); }
 .dot.busy { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); animation: pulse 1.2s var(--ease) infinite; }
 @keyframes pulse { 50% { box-shadow: 0 0 0 6px transparent; } }
 

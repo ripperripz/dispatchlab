@@ -47,7 +47,10 @@
     const dot = document.getElementById('conn-dot');
     dot.className = 'dot ' + state;
     const title = document.getElementById('conn-title'), sub = document.getElementById('conn-sub');
-    if (state === 'live') {
+    if (state === 'demo') {
+      title.textContent = 'Recorded demo';
+      sub.textContent = `Engine responses recorded ${window.DISPATCHLAB_DEMO.recorded_utc.slice(0, 10)}`;
+    } else if (state === 'live') {
       title.textContent = 'Engine live';
       sub.textContent = `${location.host} · loopback only`;
     } else {
@@ -100,6 +103,11 @@
       badge.hidden = false;
       badge.textContent = source.includes('2026-10-17') ? 'OSM · 2026-10-17 · Tricity' : 'OSM extract';
       badge.title = source;
+    }
+    if (DL.api.demo) {
+      const demo = document.getElementById('demo-badge');
+      demo.hidden = false;
+      demo.title = `Every result here was computed by the DispatchLab C++ engine on ${window.DISPATCHLAB_DEMO.recorded_on} at ${window.DISPATCHLAB_DEMO.recorded_utc} and replayed in your browser. Inputs that were not recorded are locked.`;
     }
     window.addEventListener('hashchange', route);
     route();

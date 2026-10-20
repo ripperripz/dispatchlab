@@ -12,7 +12,10 @@
     (function () {
       var pref = 'system';
       try { pref = localStorage.getItem('dl-theme') || 'system'; } catch (e) {}
-      var dark = pref === 'dark' || (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      // A host page (the hosted demo) may already have chosen a theme.
+      var host = document.documentElement.getAttribute('data-theme');
+      var sys = host ? host === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var dark = pref === 'dark' || (pref === 'system' && sys);
       document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
     })();
   </script>
@@ -47,6 +50,7 @@
         <button class="btn ghost icon menu-btn" id="menu-btn" type="button" aria-label="Open navigation"></button>
         <div class="crumbs"><span>DispatchLab</span><span class="sep">/</span><strong id="crumb">Overview</strong></div>
         <div class="spacer"></div>
+        <span class="badge demo" id="demo-badge" hidden>Recorded demo</span>
         <span class="badge" id="dataset-badge" hidden></span>
       </header>
       <div class="view" id="view" tabindex="-1"></div>

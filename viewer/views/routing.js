@@ -35,12 +35,16 @@
       // ---- inspector
       const endA = h('button.endpoint', { type: 'button', style: { width: '100%', textAlign: 'left', cursor: 'pointer' } });
       const endB = h('button.endpoint', { type: 'button', style: { width: '100%', textAlign: 'left', cursor: 'pointer' } });
-      endA.addEventListener('click', () => arm('a'));
-      endB.addEventListener('click', () => arm('b'));
+      if (!DL.api.demo) {
+        endA.addEventListener('click', () => arm('a'));
+        endB.addEventListener('click', () => arm('b'));
+      }
       const trafficCtl = DL.segmented(
         [{ value: 'free', label: 'Free flow' }, { value: 'moderate', label: 'Moderate' }, { value: 'heavy', label: 'Heavy' }],
         S.traffic, v => { S.traffic = v; if (S.s !== null && S.t !== null) run(); }, { full: true, label: 'Traffic scenario' });
-      const randomBtn = h('button.btn', { type: 'button', onclick: randomPair, title: 'Random origin and destination (R)' }, icon('shuffle'), 'Random pair');
+      const randomBtn = DL.api.demo
+        ? h('button.btn', { type: 'button', onclick: randomPair, title: 'Next recorded route (R)' }, icon('shuffle'), 'Next example')
+        : h('button.btn', { type: 'button', onclick: randomPair, title: 'Random origin and destination (R)' }, icon('shuffle'), 'Random pair');
       const swapBtn = h('button.btn.icon', { type: 'button', onclick: swap, 'aria-label': 'Swap origin and destination' }, icon('swap'));
       const resultBox = h('div');
       const replayBtn = h('button.btn.sm', { type: 'button', onclick: () => sweep(), disabled: true }, icon('restart'), 'Replay search');
@@ -49,7 +53,8 @@
         h('section.insp-section',
           h('h2', 'Route', h('span.kbd', 'R')),
           endA, endB,
-          h('div', { style: { display: 'flex', gap: '8px', marginTop: '10px' } }, randomBtn, swapBtn)),
+          h('div', { style: { display: 'flex', gap: '8px', marginTop: '10px' } }, randomBtn, DL.api.demo ? null : swapBtn),
+          DL.api.demo ? h('p.faint', { style: { fontSize: '12px', marginTop: '8px' } }, `Recorded demo: ${window.DISPATCHLAB_DEMO.routes.length} engine queries under each traffic level. Placing your own points needs the live engine.`) : null),
         h('section.insp-section', h('h2', 'Traffic'), trafficCtl,
           h('p.faint', { style: { fontSize: '12px', marginTop: '8px' } }, 'Synthetic multipliers ≥ 1 on edge weights (docs/DATA.md). A* stays admissible under all three.')),
         h('section.insp-section.grow', h('h2', 'Result', replayBtn), resultBox));
@@ -65,7 +70,7 @@
         btn.replaceChildren(
           h('span.pin.' + which, which.toUpperCase()),
           h('div.meta',
-            h('div', node === null ? h('span.muted', `${label}: click the map`) : h('span', label, h('span.faint', ` · node ${fmt.int(node)}`))),
+            h('div', node === null ? h('span.muted', DL.api.demo ? `${label}: loading` : `${label}: click the map`) : h('span', label, h('span.faint', ` · node ${fmt.int(node)}`))),
             node === null ? null : h('div.faint.mono', `${net.lat[node].toFixed(5)}, ${net.lon[node].toFixed(5)}`)));
         btn.classList.toggle('armed', armed === which);
         btn.setAttribute('aria-pressed', String(armed === which));
@@ -75,6 +80,11 @@
         endpointView(endA, 'a', S.s);
         endpointView(endB, 'b', S.t);
         const verb = coarse() ? 'Tap' : 'Click';
+        if (DL.api.demo) {
+          const k = window.DISPATCHLAB_DEMO.routes.findIndex(([s, t]) => s === S.s && t === S.t);
+          hint.lastChild.textContent = `Recorded example ${k + 1} of ${window.DISPATCHLAB_DEMO.routes.length} · press R for the next one`;
+          return;
+        }
         hint.lastChild.textContent = armed === 'a' ? `${verb} the map to place the origin` : armed === 'b' ? `${verb} the map to place the destination`
           : coarse() ? 'Drag to pan · pinch to zoom · tap an endpoint to move it' : 'Drag to pan · scroll to zoom · click an endpoint to move it';
       }
@@ -82,6 +92,15 @@
 
       function randomPair() {
         if (!net || !DL.api.live) return;
+        if (DL.api.demo) {
+          const list = window.DISPATCHLAB_DEMO.routes;
+          const k = list.findIndex(([s, t]) => s === S.s && t === S.t);
+          [S.s, S.t] = list[(k + 1) % list.length];
+          armed = null;
+          refreshEndpoints();
+          run();
+          return;
+        }
         S.s = Math.floor(Math.random() * net.n);
         S.t = Math.floor(Math.random() * net.n);
         armed = null;
@@ -290,7 +309,7 @@
         host.appendChild(DL.MapView.tools(map));
         map.addOverlay(mainOverlay);
         map.onPick = (lon, lat) => {
-          if (!DL.api.live) return;
+          if (!DL.api.live || DL.api.demo) return;
           const node = net.nearest(lon, lat);
           if (node < 0) return;
           if (armed === 'a' || armed === null && S.s === null) { S.s = node; armed = S.t === null ? 'b' : null; }
@@ -321,7 +340,7 @@
           minis.push({ algo, map: mm, el, stat });
         }
 
-        if (S.s === null && S.t === null) armed = 'a'; else armed = null;
+        if (S.s === null && S.t === null && !DL.api.demo) armed = 'a'; else armed = null;
         canvas.classList.toggle('pick', !!armed);
         refreshEndpoints();
         showResult();

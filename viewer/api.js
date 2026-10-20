@@ -2,18 +2,44 @@
 // same origin (relative /api/ paths only; never another host). Offline mode
 // (opened from file://, or no server answering) uses the bundles written by
 // `dispatchlab export-viewer`: window.DISPATCHLAB_REPLAY / DISPATCHLAB_RESULTS.
+// Demo mode (a static, hostable build from `dispatchlab export-demo`) answers
+// /api/ requests with responses recorded from the real engine, keyed by path
+// and parameters; anything not recorded is refused rather than invented.
 (function () {
   'use strict';
   const DL = (window.DL = window.DL || {});
 
   class ApiError extends Error {}
 
+  const recordKey = (path, params) => path + '?' + Object.keys(params || {})
+    .filter(k => params[k] !== undefined && params[k] !== null).sort().map(k => `${k}=${params[k]}`).join('&');
+  const loaded = {};
+  // Recordings ship as classic scripts so the demo also works where fetch of
+  // local files does not (file://). Each file is injected once, on first use.
+  function loadScript(file) {
+    if (!loaded[file]) {
+      loaded[file] = new Promise((resolve, reject) => {
+        const el = document.createElement('script');
+        el.src = (window.DISPATCHLAB_DEMO_BASE || '') + file;
+        el.onload = resolve;
+        el.onerror = () => { delete loaded[file]; reject(new ApiError('Could not load the recorded demo data. Reload the page.')); };
+        document.head.appendChild(el);
+      });
+    }
+    return loaded[file];
+  }
+
   const api = {
     mode: 'offline',
     info: null,
 
-    // Detects whether the engine is reachable. Resolves to 'live' or 'offline'.
+    // Detects whether the engine is reachable. Resolves to 'live', 'demo' or 'offline'.
     async connect() {
+      if (window.DISPATCHLAB_DEMO) {
+        this.mode = 'demo';
+        this.info = await this.get('/api/info');
+        return this.mode;
+      }
       if (!location.protocol.startsWith('http')) return (this.mode = 'offline');
       try {
         this.info = await this.get('/api/info', null, 4000);
@@ -24,10 +50,35 @@
       return this.mode;
     },
 
-    get live() { return this.mode === 'live'; },
+    // Views treat the demo like the engine; its answers come from recordings.
+    get live() { return this.mode === 'live' || this.mode === 'demo'; },
+    get demo() { return this.mode === 'demo'; },
+
+    // Whether a request has a recorded answer (demo mode only).
+    recorded(path, params) {
+      const key = recordKey(path, params);
+      return window.DISPATCHLAB_DEMO.index.some(e => recordKey(e.path, e.params) === key);
+    },
+
+    async replayRecorded(path, params) {
+      const key = recordKey(path, params);
+      if (path === '/api/network') {
+        await loadScript('demo_network.js');
+        return window.DISPATCHLAB_NETWORK;
+      }
+      const entry = window.DISPATCHLAB_DEMO.index.find(e => recordKey(e.path, e.params) === key);
+      if (!entry) throw new ApiError('Not part of the recorded demo. These inputs need the live engine: build DispatchLab and run `dispatchlab serve`.');
+      await loadScript(entry.file);
+      const rec = (window.DISPATCHLAB_DEMO_RECORDS || []).find(r => recordKey(r.path, r.params) === key);
+      if (!rec) throw new ApiError('The recorded demo data is incomplete. Reload the page.');
+      // A short pause so loading states read as a request, not a flicker.
+      await new Promise(r => setTimeout(r, 220));
+      return rec.body;
+    },
 
     async get(path, params, timeoutMs = 120000) {
       if (!path.startsWith('/api/')) throw new ApiError('invalid API path');
+      if (this.mode === 'demo') return this.replayRecorded(path, params);
       const qs = params ? '?' + new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== null)).toString() : '';
       const ctl = new AbortController();
       const timer = setTimeout(() => ctl.abort(), timeoutMs);
@@ -101,6 +152,15 @@
       return best;
     }
     return { n, lon, lat, edges, arterial, bbox, nearest, raw };
+  };
+
+  // Locks inputs whose other values were not recorded (demo mode only).
+  DL.demoLock = function (...els) {
+    if (!api.demo) return;
+    for (const el of els) {
+      el.disabled = true;
+      el.title = 'Fixed in the recorded demo. Run the engine locally to change it.';
+    }
   };
 
   DL.api = api;

@@ -43,6 +43,7 @@
         };
         const traffic = h('select.input', ['free', 'moderate', 'heavy'].map(t => h('option', { value: t, selected: t === S.params.traffic ? true : null }, t[0].toUpperCase() + t.slice(1))));
         const btn = h('button.btn.primary', { type: 'button' }, icon('policies'), 'Compare policies');
+        DL.demoLock(inputs.couriers, inputs.orders, inputs.window, inputs.seed);
         live.appendChild(h('div.panel', h('div.panel-body', h('div.form-row',
           DL.field('Couriers', inputs.couriers), DL.field('Orders', inputs.orders), DL.field('Window (min)', inputs.window),
           DL.field('Seed', inputs.seed), DL.field('Traffic', traffic), h('div', { style: { marginLeft: 'auto' } }, btn)))));

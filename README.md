@@ -99,6 +99,7 @@ Run `./build/dispatchlab help` for all options.
 | `dispatchlab export-viewer <graph> <scenario> <events.jsonl> --out viewer/replay.json --js viewer/replay_data.js` | viewer replay document |
 | `dispatchlab validate-replay viewer/replay.json` | validate a replay and re-check its hash |
 | `dispatchlab serve <graph> --port 8080` | the console: live frontend + JSON API on 127.0.0.1 |
+| `dispatchlab export-demo <graph> --out-dir dist/demo/data` | record engine responses for the static demo (used by `scripts/build-demo.sh`) |
 | `dispatchlab perf-report ...` | regenerate the measured sections of PERFORMANCE.md |
 
 Benchmarks are separate binaries: `./build/benchmark_graph`, `./build/benchmark_routing` and
@@ -168,6 +169,20 @@ the same parameters, and `scripts/verify.sh` checks that.
 **Offline:** opened from `file://`, the console reads `replay_data.js` and `results_data.js` (written
 by `export-viewer --js ... --results-js ...`). Overview, Simulation (the recorded replay), Policies
 results and Benchmarks work; the live-only parts explain how to start the server.
+
+### Hosted demo (no server)
+
+```bash
+./scripts/build-demo.sh
+```
+
+This writes `dist/demo/`, a static copy of the console that needs no server. `export-demo` calls the
+console API in-process and records its real responses: 8 routes under each traffic level, the
+simulation for each policy and traffic level, the head-to-head comparisons, and the correctness
+checks. The recordings are keyed by path and parameters. The demo answers only requests that were
+recorded and refuses everything else, so inputs that were not recorded are locked. Every view shows a
+"Recorded demo" badge. Open `dist/demo/preview.html` locally, or host the folder as static files
+(`index.html` is the page body for hosts that supply the document wrapper).
 
 ## Repository layout
 

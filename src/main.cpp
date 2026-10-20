@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <map>
 #include <string>
 #include <vector>
@@ -23,7 +24,9 @@
 #include "dispatchlab/road_model.hpp"
 #include "dispatchlab/routing.hpp"
 #include "dispatchlab/scc.hpp"
+#include "dispatchlab/rng.hpp"
 #include "dispatchlab/scenario.hpp"
+#include "dispatchlab/sysinfo.hpp"
 #include "dispatchlab/simulator.hpp"
 #include "dispatchlab/tools.hpp"
 #include "dispatchlab/traffic.hpp"
@@ -104,6 +107,8 @@ void usage() {
         "                [--js viewer/replay_data.js] [--results-js viewer/results_data.js] [--policy NAME]\n"
         "      Write the replay document (and optionally the benchmark/experiment bundle) for the\n"
         "      console, so viewer/index.html works from file:// without a server.\n"
+        "  export-demo <graph> [--out-dir dist/demo]\n"
+        "      Record real engine responses for a static, hostable demo of the console.\n"
         "  serve <graph> [--port 8080] [--workers N] [--root viewer] [--results .] [--quiet]\n"
         "      Run the console on http://127.0.0.1:<port> (loopback only): live routing lab,\n"
         "      simulations, policy comparison, benchmarks and correctness checks.\n"
@@ -403,6 +408,110 @@ int cmd_serve(const Args& a) {
     return 0;
 }
 
+// Records real engine responses for a static demo build of the console: the
+// same JSON the live server returns, captured by calling the API in-process.
+// Each recording is keyed by path and query parameters, exactly as the console
+// sends them, and grouped into script files the demo loads on demand.
+int cmd_export_demo(const Args& a) {
+    using Params = std::map<std::string, std::string>;
+    const std::string out_dir = a.get("out-dir", "dist/demo");
+    std::filesystem::create_directories(out_dir);
+    ConsoleOptions opts;
+    opts.static_root = a.get("root", "viewer");
+    opts.results_root = a.get("results", ".");
+    ConsoleApi api(load_graph(a.pos(0, "graph")), opts);
+    const Graph& g = api.graph();
+
+    json::Writer index;  // [{path, params, file}] for every recording
+    index.begin_array();
+    std::size_t total_bytes = 0, count = 0;
+    struct Group {
+        std::string file;
+        std::string body;
+    };
+    auto record = [&](Group& grp, const std::string& path, const Params& q) {
+        HttpRequest req;
+        req.method = "GET";
+        req.path = path;
+        req.query = q;
+        HttpResponse r = api.handle(req);
+        if (r.status != 200) throw std::runtime_error(path + " failed: " + r.body);
+        json::Writer e;
+        e.begin_object().kv("path", path).key("params").begin_object();
+        for (const auto& [k, v] : q) e.kv(k, v);
+        e.end_object();
+        index.begin_object().kv("path", path).key("params").begin_object();
+        for (const auto& [k, v] : q) index.kv(k, v);
+        index.end_object().kv("file", grp.file).end_object();
+        e.key("body").raw(r.body).end_object();
+        grp.body += (grp.body.empty() ? "" : ",\n") + e.str();
+        ++count;
+    };
+    auto flush = [&](const Group& grp) {
+        const std::string js = "window.DISPATCHLAB_DEMO_RECORDS = (window.DISPATCHLAB_DEMO_RECORDS || []).concat([\n" + grp.body + "]);\n";
+        json::write_file(out_dir + "/" + grp.file, js);
+        total_bytes += js.size();
+    };
+
+    // Example routes: seeded pairs spread over short, medium and long trips.
+    Dijkstra dij = make_dijkstra(g);
+    Rng rng(a.num("seed", 2026));
+    struct Want { Dist lo, hi; int count; };
+    std::vector<Want> wants = {{3 * 60000, 10 * 60000, 2}, {10 * 60000, 20 * 60000, 3}, {20 * 60000, 40 * 60000, 3}};
+    std::vector<std::pair<NodeId, NodeId>> pairs;
+    for (auto& wnt : wants) {
+        for (int tries = 0; wnt.count > 0 && tries < 100000; ++tries) {
+            const auto s = static_cast<NodeId>(rng.below(g.num_nodes())), t = static_cast<NodeId>(rng.below(g.num_nodes()));
+            const Dist c = dij.query(s, t, false).cost;
+            if (c >= wnt.lo && c < wnt.hi) {
+                pairs.push_back({s, t});
+                --wnt.count;
+            }
+        }
+    }
+    const char* traffics[] = {"free", "moderate", "heavy"};
+    const char* policies[] = {"nearest", "greedy_eta"};
+
+    Group base{"demo_base.js", {}};
+    record(base, "/api/info", {});
+    record(base, "/api/results", {});
+    flush(base);
+    for (const char* tr : traffics) {
+        Group routes{std::string("demo_routes_") + tr + ".js", {}};
+        for (const auto& [s, t] : pairs)
+            record(routes, "/api/route", {{"s", std::to_string(s)}, {"t", std::to_string(t)}, {"traffic", tr}, {"trace", "1"}});
+        flush(routes);
+        // Defaults of the simulation view (couriers, orders, window, seed).
+        Group sims{std::string("demo_sim_") + tr + ".js", {}};
+        for (const char* p : policies)
+            record(sims, "/api/simulate", {{"couriers", "40"}, {"orders", "300"}, {"window", "180"}, {"seed", "42"}, {"traffic", tr}, {"policy", p}});
+        flush(sims);
+    }
+    // Defaults of the policies and correctness views.
+    Group checks{"demo_checks.js", {}};
+    for (const char* tr : traffics) {
+        record(checks, "/api/compare", {{"couriers", "40"}, {"orders", "300"}, {"window", "120"}, {"seed", "7"}, {"traffic", tr}});
+        record(checks, "/api/agreement", {{"queries", "300"}, {"traffic", tr}});
+    }
+    for (const char* p : policies) record(checks, "/api/determinism", {{"seed", "42"}, {"policy", p}});
+    record(checks, "/api/selftest", {});
+    flush(checks);
+    index.end_array();
+
+    const SysInfo si = system_info();
+    json::Writer meta;
+    meta.begin_object().kv("format", "dispatchlab-demo-1").kv("recorded_utc", si.timestamp_utc).kv("recorded_on", si.cpu);
+    meta.key("routes").begin_array();
+    for (const auto& [s, t] : pairs) meta.begin_array().value(static_cast<std::uint64_t>(s)).value(static_cast<std::uint64_t>(t)).end_array();
+    meta.end_array().key("index").raw(index.str()).end_object();
+    json::write_file(out_dir + "/demo_meta.js", "window.DISPATCHLAB_DEMO = " + meta.str() + ";\n");
+    const std::string net = "window.DISPATCHLAB_NETWORK = " + api.handle(HttpRequest{"GET", "/api/network", {}}).body + ";\n";
+    json::write_file(out_dir + "/demo_network.js", net);
+    std::printf("demo: %zu recordings (%zu route pairs x 3 traffic levels) -> %s (%.1f MB + %.1f MB network)\n",
+                count, pairs.size(), out_dir.c_str(), total_bytes / 1e6, net.size() / 1e6);
+    return 0;
+}
+
 int cmd_perf_report(const Args& a) {
     write_performance_report(a.get("graph-json", "benchmarks/results/graph.json"),
                              a.get("routing-json", "benchmarks/results/routing.json"),
@@ -436,6 +545,7 @@ int main(int argc, char** argv) {
         if (cmd == "validate-replay") return cmd_validate_replay(args);
         if (cmd == "perf-report") return cmd_perf_report(args);
         if (cmd == "serve") return cmd_serve(args);
+        if (cmd == "export-demo") return cmd_export_demo(args);
         if (cmd == "help" || cmd == "--help" || cmd == "-h") {
             usage();
             return 0;

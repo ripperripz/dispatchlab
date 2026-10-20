@@ -17,3 +17,4 @@ build-verify/
 viewer/results_data.js
 .impeccable/review/
 .impeccable/build/
+dist/

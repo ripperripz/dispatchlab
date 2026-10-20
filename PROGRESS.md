@@ -86,6 +86,16 @@ Last updated: 2026-10-19. Re-read this file, then `docs/PRD.md`, before resuming
 * Clustered, time-of-day demand mode; uniform scenario hashes unchanged.
 * A benchmark run was invalidated by laptop sleep; repeated under `caffeinate`.
 
+## Hosted demo (2026-10-20)
+
+* `dispatchlab export-demo` records real console API responses in-process (41 recordings: 8 routes ×
+  3 traffic levels with search traces, 6 simulations, 3 comparisons, agreement, determinism,
+  self-test). `scripts/build-demo.sh` packages them with the viewer into `dist/demo/`.
+* `viewer/api.js` gains a `demo` mode that replays recordings keyed by path and parameters and refuses
+  anything unrecorded. Unrecorded inputs are locked, and a "Recorded demo" badge is always visible.
+* Published as a private claude.ai artifact for a classroom demo. Tested locally under headless Chrome
+  (all six views). Live, offline and AC-13 behaviour is unchanged.
+
 ## In progress
 
 * Nothing in progress. All mandatory AC and the optional AC-17 (CCH) pass in `verify.sh` (exit 0,

@@ -38,7 +38,9 @@
       const page = h('div.page.fade-in');
       root.appendChild(page);
       page.appendChild(h('div.page-head', h('div', h('h1', 'Correctness'),
-        h('p', 'The same checks ./scripts/verify.sh runs on every build, run live against the engine. Verify runs the full 10,000-query agreement suite; here you choose the size.'))));
+        h('p', DL.api.demo
+          ? 'The same checks ./scripts/verify.sh runs on every build. In this recorded demo each button shows the engine’s recorded answer; verify runs the full 10,000-query agreement suite.'
+          : 'The same checks ./scripts/verify.sh runs on every build, run live against the engine. Verify runs the full 10,000-query agreement suite; here you choose the size.'))));
 
       if (!DL.api.live) {
         page.appendChild(DL.serverRequired('These checks run on the engine', 'Agreement, determinism and invariant checks execute the C++ code in real time. Start the server to run them from here.'));
@@ -55,6 +57,7 @@
       const queries = DL.numberInput(300, 1, 5000);
       const traffic = h('select.input', ['free', 'moderate', 'heavy'].map(t => h('option', { value: t }, t[0].toUpperCase() + t.slice(1))));
       queries.style.width = '96px';
+      DL.demoLock(queries);
       page.appendChild(h('div.section', check('Algorithm agreement',
         'Random source–destination pairs from a fixed seed. Dijkstra, Bidirectional Dijkstra, A* and CCH must return the same integer cost, and every reconstructed path must sum to that cost.',
         [DL.field('Queries', queries), DL.field('Traffic', traffic)],
@@ -77,6 +80,7 @@
       // 2. Determinism
       const seed = DL.numberInput(42, 0, 2147483647);
       seed.style.width = '110px';
+      DL.demoLock(seed);
       const policy = h('select.input', DL.POLICIES.map(p => h('option', { value: p.id }, p.label)));
       const hashCell = (label, value, ok) => h('div', h('div.label', label), h('span.hash', value), ok === undefined ? null : h('span', { class: ok ? 'ok-ic' : 'err-ic', style: { marginLeft: '6px' } }, icon(ok ? 'check' : 'x')));
       page.appendChild(h('div.section', check('Determinism and replay',
