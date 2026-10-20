@@ -72,6 +72,15 @@ This does a clean Release build with `-Wall -Wextra -Wpedantic -Werror` and then
 It prints PASS/FAIL per acceptance criterion and exits 0 only if everything passes. It takes about
 5 minutes on an Apple M4.
 
+**Linux:** the same script runs on Ubuntu 24.04 (GCC 13) in CI (`.github/workflows/ci.yml`) and
+locally in Docker:
+
+```bash
+docker build -t dispatchlab-ci ci/
+```
+
+Then run `docker run --rm -v "$PWD":/src:ro dispatchlab-ci bash -c 'git clone -q /src /work/repo && cd /work/repo && ./scripts/verify.sh'`.
+
 ## Command reference
 
 Run `./build/dispatchlab help` for all options.

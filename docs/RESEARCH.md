@@ -12,13 +12,23 @@ the exact road travel time T(c, r) from **every** available courier to the resta
 example with one backward Dijkstra from r until every courier is settled. Can the dispatcher
 provably make the *same* decision while doing far less shortest-path work?
 
-**Answer (measured).** Yes. On the Tricity network (142,425 nodes), an exact *adaptive* strategy
-makes identical decisions, verified by identical final state hashes in 18 full simulations per
-strategy and identical choices in every micro sample (1,200 per strategy; 600 in adaptive's own run). It cuts the mean decision time by **16× in
-large, normally loaded scenarios** (7.93 → 0.50 ms) and **7.2× under peak load** (4.55 → 0.63 ms),
-while establishing about one exact courier distance per decision instead of up to 250. One
-component, a naive CCH one-to-many, is a **loss**: up to 3.4× *slower* than the baseline. It is
-reported below with the reason.
+**Answer (measured).** Yes, but how much it matters depends on the baseline. All exact strategies
+make identical decisions, verified by identical final state hashes in every simulation cell and
+identical choices in every micro sample.
+- **Against the naive exact baseline** (one Dijkstra sweep that settles every available courier),
+  the decision-aware `adaptive` strategy cuts mean decision time 7–16× on Tricity and up to ~400× on
+  a 17M-node graph.
+- **Against a strong exact baseline** (RPHAST-style restricted CCH one-to-many, §8), the gain is
+  smaller: about **2.5× in large, normally loaded scenarios** (many free couriers). Under peak load
+  and on small scenarios, it ranges from parity to about 0.8×. At 17M nodes with 500 couriers,
+  `pruned` is still 10× faster than RPHAST.
+- The honest summary: proving the decision without computing every distance pays off most when
+  available couriers are dense. When they are sparse, an exhaustive but well-engineered one-to-many
+  is just as good.
+
+Two components are **losses**, reported below with the reasons:
+- a naive per-courier CCH one-to-many (§3);
+- a budgeted "hybrid" switching rule (§8).
 
 This is engineering on top of known ideas (bounded and pruned searches, contraction hierarchies),
 not a new algorithmic primitive; see *Related work*. What the project adds is an exact, evaluated
@@ -198,3 +208,75 @@ across all five strategies (`EXACTNESS_OK`).
   strategies.
 - **The bucket-style CCH loss persists at scale** (523 ms at 500 couriers): one forward upward
   search per courier.
+
+
+## 8. v2: strong baseline, realistic demand, size-independent switching
+
+Raw data: `benchmarks/results/eta_v2_tricity_uniform.json`, `eta_v2_tricity_clustered.json` and
+`eta_v2_northern.json`. Same machine; mean decision latency over 3 seeds (system) or medians (micro).
+`EXACTNESS_OK` in every run.
+
+**New strategies.**
+- `rphast` computes every T(c, r) exactly in one pass. It selects the union of the couriers' upward
+  CCH search spaces, runs one complete backward upward search from r, then sweeps the selection in
+  descending rank. That is the RPHAST idea (Delling, Goldberg, Werneck 2011), with the selection
+  recomputed per decision because the courier set changes.
+- `hybrid` runs `pruned` under a fixed budget of 8,000 settled nodes. If the decision is not proven
+  within the budget, it continues with `bounded`, keeping the incumbent. No graph-size constant is
+  involved.
+
+**Realistic demand (`--demand clustered`).**
+- Restaurants sit within 1.5 km of 4–24 hotspots.
+- 60% of couriers start within 3 km of a hotspot.
+- Restaurant popularity is skewed (index ~ R·u²).
+- Arrivals are 20% uniform background, otherwise lunch and dinner peaks at 30% and 72% of the
+  window (sd 7%).
+- Uniform scenarios are unchanged, with byte-identical hashes.
+
+### System, Tricity, moderate traffic (mean ms per decision)
+
+| Scenario | demand | full | **rphast** | pruned | bounded | adaptive | hybrid | adaptive vs rphast |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| small | uniform | 7.09 | **0.77** | 1.42 | 0.93 | 1.00 | 1.15 | 0.8× |
+| small peak | uniform | 4.71 | **0.64** | 3.72 | 0.70 | 0.72 | 1.04 | 0.9× |
+| medium | uniform | 8.00 | 1.02 | **0.68** | 1.49 | 0.69 | 1.23 | 1.5× |
+| medium peak | uniform | 4.79 | **0.68** | 4.08 | 0.73 | 0.70 | 1.09 | 1.0× |
+| large | uniform | 8.11 | 1.30 | **0.51** | 3.09 | **0.51** | 1.19 | **2.5×** |
+| large peak | uniform | 4.64 | 0.70 | 3.91 | 0.81 | **0.65** | 1.05 | 1.1× |
+| small | clustered | 4.78 | **0.64** | 2.20 | 0.69 | **0.64** | 0.90 | 1.0× |
+| small peak | clustered | 3.81 | 0.59 | 2.74 | 0.60 | **0.57** | 0.85 | 1.0× |
+| medium | clustered | 5.82 | 0.77 | 2.98 | 1.00 | **0.72** | 1.11 | 1.1× |
+| medium peak | clustered | 4.61 | **0.67** | 3.72 | 0.76 | 0.69 | 1.12 | 1.0× |
+| large | clustered | 5.69 | 0.85 | 2.66 | 1.80 | **0.66** | 1.35 | 1.3× |
+| large peak | clustered | 4.58 | 0.69 | 3.66 | 0.94 | **0.63** | 1.09 | 1.1× |
+
+### Micro, 17.2M nodes, food not ready (median ms per decision)
+
+| Couriers | full | rphast | pruned | bounded | adaptive | hybrid |
+|---:|---:|---:|---:|---:|---:|---:|
+| 20 | 1,254 | 10.7 | 61.7 | 5.04 | **4.91** | 6.48 |
+| 100 | 1,276 | 17.8 | 8.51 | **4.61** | **4.61** | 5.98 |
+| 500 | 1,260 | 27.0 | **2.71** | 3.53 | 3.63 | 4.38 |
+
+### What changed in the conclusions
+
+- **RPHAST is the right baseline, and it is strong.** It is 6–9× faster than the naive sweep on
+  Tricity and 46–117× faster at 17M nodes, because it touches only the couriers' upward spaces
+  (12k–80k nodes) instead of the whole graph.
+- **Decision-awareness still wins where it should.** Dense free couriers (large, normal load:
+  2.5×; 17M nodes with 500 couriers: `pruned` 10× faster than RPHAST) mean the decision is proven
+  after about one exact distance, while RPHAST must establish all 250–500.
+- **It does not win everywhere.** With few free couriers (peak load, small fleets), RPHAST's
+  exhaustive pass is as cheap as proving the decision, and on small scenarios it is 1.1–1.3× faster
+  than `adaptive`.
+- **Clustered demand narrows every gap.** Couriers bunch near hotspots and food-ready times
+  coincide, so `pruned` finds candidates quickly but also faces more ETA ties. `adaptive` is best
+  or within 5% in all 6 clustered cells.
+- **Negative result: `hybrid`.** The fixed 8,000-node budget makes it 1.15–2.3× slower than
+  `adaptive` on Tricity and 1.2–1.3× slower at 17M nodes. Under peak load it pays the whole budget
+  before switching, and at dense loads it is no better than `pruned`. A size-independent rule
+  remains open. The count-based `adaptive` rule was within 1.35× of the best strategy in every
+  cell measured here, including out of sample at 17M nodes, but its constant was tuned on Tricity.
+- **A better design suggested by the data** (not implemented): run `pruned` when free couriers
+  are dense, and `rphast`, not `bounded`, when they are sparse, since `rphast` is the fastest exact
+  strategy in most sparse cells.

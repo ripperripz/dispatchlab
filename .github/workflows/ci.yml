@@ -1,0 +1,30 @@
+# Continuous verification on the PRD's reference platform (Linux). Mirrors
+# ci/Dockerfile, which runs the same checks locally:
+#   docker build -t dispatchlab-ci ci/
+#   docker run --rm -v "$PWD":/src:ro dispatchlab-ci \
+#     bash -c 'git clone -q /src /work/repo && cd /work/repo && ./scripts/verify.sh'
+name: verify
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies (as documented in README)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential cmake \
+            libosmium2-dev libprotozero-dev zlib1g-dev libbz2-dev libexpat1-dev nodejs
+      - name: Acceptance verification (clean Release build, all AC checks)
+        run: ./scripts/verify.sh
+      - name: Upload verification logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-out
+          path: build-verify/verify-out/
