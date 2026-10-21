@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="DispatchLab: food-delivery routing and dispatch on the Tricity road network. Recorded demo of the C++20 engine.">
+  <title>DispatchLab Demo</title>
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="style.css">
+  <style>html, body { height: 100%; } body { background: var(--bg); } .app { height: 100%; }</style>
+  <script>
+    // Resolve the theme before first paint (system / light / dark).
+    (function () {
+      var pref = 'system';
+      try { pref = localStorage.getItem('dl-theme') || 'system'; } catch (e) {}
+      // A host page (the hosted demo) may already have chosen a theme.
+      var host = document.documentElement.getAttribute('data-theme');
+      var sys = host ? host === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var dark = pref === 'dark' || (pref === 'system' && sys);
+      document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    })();
+  </script>
+</head>
+<body>
+  <div class="app" id="app">
+    <aside class="sidebar" id="sidebar" aria-label="Primary">
+      <a class="brand" href="#/overview" aria-label="DispatchLab overview">
+        <svg class="brand-mark" viewBox="0 0 26 26" aria-hidden="true">
+          <rect x="0.5" y="0.5" width="25" height="25" rx="7" fill="var(--invert-bg)"/>
+          <path d="M7 18.5 L7 12.5 Q7 10 9.5 10 L16 10 Q19 10 19 7.5" fill="none" stroke="var(--invert-text)" stroke-width="1.7" stroke-linecap="round"/>
+          <circle cx="7" cy="18.5" r="2.1" fill="var(--invert-text)"/>
+          <circle cx="19" cy="7.5" r="2.4" fill="var(--accent)"/>
+        </svg>
+        <div>
+          <div class="brand-name">DispatchLab</div>
+          <div class="brand-sub">Tricity · C++20 engine</div>
+        </div>
+      </a>
+      <nav id="nav"></nav>
+      <div class="sidebar-foot">
+        <div class="conn" id="conn" role="status" aria-live="polite">
+          <span class="dot" id="conn-dot"></span>
+          <div><strong id="conn-title">Connecting…</strong><span class="muted" id="conn-sub">Looking for the engine</span></div>
+        </div>
+        <div id="theme"></div>
+      </div>
+    </aside>
+    <div class="scrim" id="scrim"></div>
+    <div class="main">
+      <header class="topbar">
+        <button class="btn ghost icon menu-btn" id="menu-btn" type="button" aria-label="Open navigation"></button>
+        <div class="crumbs"><span>DispatchLab</span><span class="sep">/</span><strong id="crumb">Overview</strong></div>
+        <div class="spacer"></div>
+        <span class="badge demo" id="demo-badge" hidden>Recorded demo</span>
+        <span class="badge" id="dataset-badge" hidden></span>
+      </header>
+      <div class="view" id="view" tabindex="-1"></div>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>window.DISPATCHLAB_DEMO_BASE = "data/";</script>
+  <script src="data/demo_meta.js"></script>
+  <script src="core.js"></script>
+  <script src="ui.js"></script>
+  <script src="api.js"></script>
+  <script src="map.js"></script>
+  <script src="charts.js"></script>
+  <script src="views/overview.js"></script>
+  <script src="views/routing.js"></script>
+  <script src="views/simulation.js"></script>
+  <script src="views/policies.js"></script>
+  <script src="views/benchmarks.js"></script>
+  <script src="views/correctness.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

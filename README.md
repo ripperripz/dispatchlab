@@ -184,6 +184,10 @@ recorded and refuses everything else, so inputs that were not recorded are locke
 "Recorded demo" badge. Open `dist/demo/preview.html` locally, or host the folder as static files
 (`index.html` is the page body for hosts that supply the document wrapper).
 
+The same script writes `site/`, a committed copy with a full `index.html` and `vercel.json`. To deploy
+it on Vercel, import the repository with **Root Directory** `site`, **Framework** Other, and no build
+command. Rerun `./scripts/build-demo.sh` and commit `site/` to update the deployment.
+
 ## Repository layout
 
 ```text
